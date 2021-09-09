@@ -20,7 +20,6 @@ import {
 import {Logo} from './components/logo'
 import {useAuth} from './context/auth-context'
 import {useAsync} from './utils/hooks'
-import { FaArrowAltCircleRight } from 'react-icons/fa'
 
 function LoginForm({onSubmit, submitButton}) {
   const {isLoading, isError, error, run} = useAsync()
@@ -108,11 +107,9 @@ function UnauthenticatedApp() {
       >
         <Modal>
           <ModalOpenButton>
-            <Button onClick={() => alert('hello')} variant="primary">Login</Button>
+            <Button variant="primary">Login</Button>
           </ModalOpenButton>
-          <ModalContents aria-label="Login form">
-            {circleDismissButton}
-            <h3 css={{textAlign: 'center', fontSize: '2em'}}>Login</h3>
+          <ModalContents aria-label="Login form" title="Login">
             <LoginForm
               onSubmit={login}
               submitButton={<Button variant="primary">Login</Button>}
@@ -123,9 +120,7 @@ function UnauthenticatedApp() {
           <ModalOpenButton>
             <Button variant="secondary">Register</Button>
           </ModalOpenButton>
-          <ModalContents aria-label="Registration form">
-            {circleDismissButton}
-            <h3 css={{textAlign: 'center', fontSize: '2em'}}>Register</h3>
+          <ModalContents aria-label="Registration form" itle="Register">
             <LoginForm
               onSubmit={register}
               submitButton={<Button variant="secondary">Register</Button>}
