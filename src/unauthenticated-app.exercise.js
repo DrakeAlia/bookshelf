@@ -20,6 +20,7 @@ import {
 import {Logo} from './components/logo'
 import {useAuth} from './context/auth-context'
 import {useAsync} from './utils/hooks'
+import { FaArrowAltCircleRight } from 'react-icons/fa'
 
 function LoginForm({onSubmit, submitButton}) {
   const {isLoading, isError, error, run} = useAsync()
@@ -107,7 +108,7 @@ function UnauthenticatedApp() {
       >
         <Modal>
           <ModalOpenButton>
-            <Button variant="primary">Login</Button>
+            <Button onClick={() => alert('hello')} variant="primary">Login</Button>
           </ModalOpenButton>
           <ModalContents aria-label="Login form">
             {circleDismissButton}
