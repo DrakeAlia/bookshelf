@@ -11,6 +11,7 @@ import {formatDate} from 'utils/misc'
 import {useListItem, useUpdateListItem} from 'utils/list-items'
 import * as mq from 'styles/media-queries'
 import * as colors from 'styles/colors'
+import {Profiler} from 'components/profiler' 
 import {Spinner, Textarea, ErrorMessage} from 'components/lib'
 import {Rating} from 'components/rating'
 import {StatusButtons} from 'components/status-buttons'
@@ -23,6 +24,7 @@ function BookScreen() {
   const {title, author, coverImageUrl, publisher, synopsis} = book
 
   return (
+    <Profiler id="Book Screen" metadata={{bookId, listItemId: listItem?.id}}>
     <div>
       <div
         css={{
@@ -76,6 +78,7 @@ function BookScreen() {
         <NotesTextarea listItem={listItem} />
       ) : null}
     </div>
+  </Profiler>
   )
 }
 
@@ -142,3 +145,22 @@ function NotesTextarea({listItem}) {
 }
 
 export {BookScreen}
+
+// Add Metadata and Profile Book Screen (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Let's see if we can measure some of the interactions on this page. Like adding this to our list and having these 
+// things appear. We want to make sure that that experience is as snappy as possible.
+
+// Let's go to our book screen, and we'll wrap everything in here in our Profiler component. Here we'll import the 
+// Profiler from components Profiler. Then we'll say Profiler and take this div all the way down to its bottom, and 
+// save that.
+
+// Then we have that list item ID, as well. This just gives a little bit more information to help us interpret these 
+// numbers, and triage performance problems, as they come in, as our users are using our app.
+
+// In review, what we did to make all of this work is we decided we wanted to profile the book screen. We also 
+// decided that information we get for the updates, on this book screen isn't quite enough to help us triage problems.
+
+// For our custom Profiler component, we added a metadata prop that accepts some additional information to help us in 
+// the triage of these problems. We accepted that metadata and forwarded it along as part of what we push on to the 
+// queue, which ultimately will get sent to our profile endpoint of our backend.
