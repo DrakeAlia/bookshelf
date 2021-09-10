@@ -89,7 +89,7 @@ once the user logs in because the code will be pre-loaded, but the user won't
 have to wait for that code to download before they can use the login screen.
 
 **Files:**
-
+ 
 - `src/app.js`
 
 ### 2. 💯 Memoize context
