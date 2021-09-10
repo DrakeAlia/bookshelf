@@ -1,4 +1,5 @@
 import * as React from 'react'
+import {wrap} from 'components/profiler'
 
 function useSafeDispatch(dispatch) {
   const mounted = React.useRef(false)
@@ -38,9 +39,10 @@ function useAsync(initialState) {
     error => safeSetState({error, status: 'rejected'}),
     [safeSetState],
   )
-  const reset = React.useCallback(() => safeSetState(initialStateRef.current), [
-    safeSetState,
-  ])
+  const reset = React.useCallback(
+    () => safeSetState(initialStateRef.current),
+    [safeSetState],
+  )
 
   const run = React.useCallback(
     promise => {
@@ -51,14 +53,14 @@ function useAsync(initialState) {
       }
       safeSetState({status: 'pending'})
       return promise.then(
-        data => {
+        wrap(data => {
           setData(data)
           return data
-        },
-        error => {
+        }),
+        wrap(error => {
           setError(error)
           return error
-        },
+        }),
       )
     },
     [safeSetState, setData, setError],
@@ -82,3 +84,21 @@ function useAsync(initialState) {
 }
 
 export {useAsync}
+
+// Profile All Updates in an Interaction (Extra) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// As great as it is that we can track this interaction, there are several others state updates that happen as well as
+// a result of this interaction that just happened later. I want to capture all of those state updates, and associate
+// that to this interaction.
+
+// In review, what we did here is we imported unstable_wrap, we erased it as wrap from the scheduler/tracing module.
+// Then down here, inside of our run callback, we wrapped all the functions that we knew we're going to run later as
+// a result of this interaction.
+
+// One other thing that I want to do here is I don't want to import scheduler/tracing all over the place. I'd rather
+// have all of my profiler stuff in my profiler module. I'm going to export { unstable_trace as trace, unstable_wrap
+// as wrap } from "scheduler/tracing". With that now, I can import trace from the profiler module right here.
+// I can import wrap from the components/profiler module there.
+
+// Now I have the ability to give all of the information needed for the production performance monitoring to be
+// really useful and helping me triage performance bottlenecks that my users experience in production.
