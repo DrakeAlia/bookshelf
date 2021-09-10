@@ -16,6 +16,7 @@ import {
   useRemoveListItem,
   useCreateListItem,
 } from 'utils/list-items'
+import {unstable_trace as trace} from 'scheduler/tracing'
 import * as colors from 'styles/colors'
 import {useAsync} from 'utils/hooks'
 import {CircleButton, Spinner} from './lib'
@@ -27,7 +28,9 @@ function TooltipButton({label, highlight, onClick, icon, ...rest}) {
     if (isError) {
       reset()
     } else {
-      run(onClick())
+      trace(`Click ${label}`, performance.now(), () => {
+        run(onClick())
+      })
     }
   }
 
@@ -101,3 +104,19 @@ function StatusButtons({book}) {
 }
 
 export {StatusButtons}
+
+// Add Interaction Tracing (Extra) //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// As great as it is that we're providing this metadata to our Profiler, it will still be more useful if we had some 
+// insight into what action the user took that triggered a render. This is what interaction tracing is all about.
+
+// This is an unstable API, so it may change, but it is pretty cool. We are recording all of the profiling data for 
+// all of the updates that happen when I click that button, but it would actually be cooler if the data that I get in 
+// my profile information includes the fact that clicking this button is the reason it's happened.
+
+// In review, what we did here is we recognized that interactions is actually a set. We converted it to an array, so 
+// we can send it to our backend. Then we also updated the status buttons, to import unstable trace as trace from 
+// scheduler tracing.
+
+// We took the line of code that triggers the state update, and we wrapped in a trace call, giving it a label, and a 
+// timestamp.
