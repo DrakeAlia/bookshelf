@@ -8,6 +8,7 @@ import {useAsync} from 'utils/hooks'
 import {FullPageSpinner, FullPageErrorFallback} from 'components/lib'
 
 async function getUser() {
+  console.log('getUser')
   let user = null
 
   const token = await auth.getToken()
@@ -21,6 +22,15 @@ async function getUser() {
 
 const AuthContext = React.createContext()
 AuthContext.displayName = 'AuthContext'
+
+// we need to call getUser() sooner.
+// 🐨 move the next line to just outside the AuthProvider (X)
+// 🦉 this means that as soon as this module is imported,
+// it will start requesting the user's data so we don't
+// have to wait until the app mounts before we kick off
+// the request.
+// We're moving from "Fetch on render" to "Render WHILE you fetch"!
+const userPromise = getUser()
 
 function AuthProvider(props) {
   const {
@@ -36,14 +46,7 @@ function AuthProvider(props) {
   } = useAsync()
 
   React.useEffect(() => {
-    // we need to call getUser() sooner.
-    // 🐨 move the next line to just outside the AuthProvider
-    // 🦉 this means that as soon as this module is imported,
-    // it will start requesting the user's data so we don't
-    // have to wait until the app mounts before we kick off
-    // the request.
-    // We're moving from "Fetch on render" to "Render WHILE you fetch"!
-    const userPromise = getUser()
+    console.log('useEffect')
     run(userPromise)
   }, [run])
 
@@ -101,3 +104,15 @@ function useClient() {
 }
 
 export {AuthProvider, useAuth, useClient}
+
+// Fetch User before AuthProvider Mounts /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Let's take a look at the problem here first. If I right click here with the DevTools open, I'll see this empty 
+// cache and hard reload. Let's try that.
+
+// We'll see this waterfall effect of everything that happens as the user comes on to our page. I'm going to drag 
+// this over here, so we can scope this down to just what's happening at the very start.
+
+// Literally all that we did is we took this one line, which was called after the authProvider's mounted. We moved 
+// it out of the authProvider entirely, so that it's called at the same time the authProvider is defined, giving us 
+// a little bit of time to start getting the user's information when the app is loading.
