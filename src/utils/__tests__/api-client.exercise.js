@@ -41,7 +41,7 @@ test('calls fetch at the endpoint with the arguments for GET requests', async ()
 test('adds auth token when a token is provided', async () => {
   const token = 'FAKE_TOKEN'
 
-  let request 
+  let request
   const endpoint = 'test-endpoint'
   const mockResult = {mockValue: 'VALUE'}
   server.use(
@@ -60,9 +60,27 @@ test('adds auth token when a token is provided', async () => {
 // 🐨 call the client with the endpoint and the custom config
 // 🐨 verify the request had the correct properties
 test('allows for config overrides', async () => {
+  let request
+  const endpoint = 'test-endpoint'
+  const mockResult = {mockValue: 'VALUE'}
+  server.use(
+    rest.put(`${apiURL}/${endpoint}`, async (req, res, ctx) => {
+      request = req
+      return res(ctx.json(mockResult))
+    }),
+  )
 
+  const customConfig = {
+    method: 'PUT',
+    headers: {'Content-Type': 'fake-type'},
+  }
+
+  await client(endpoint, customConfig)
+
+  expect(request.headers.get('Content-Type')).toBe(
+    customConfig.headers['Content-Type'],
+  )
 })
-
 
 // 🐨 create a mock data object
 // 🐨 create a server handler very similar to the previous ones to handle the post request
@@ -70,37 +88,48 @@ test('allows for config overrides', async () => {
 // 🐨 call client with an endpoint and an object with the data
 //    💰 client(endpoint, {data})
 // 🐨 verify the request.body is equal to the mock data object you passed
-test('when data is provided, it is stringified and the method defaults to POST', async () => {
-
-})
-
+test('when data is provided, it is stringified and the method defaults to POST', async () => {})
 
 // Set up a Server to Test Requests /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For the API client, let's go ahead and bring in the client, which is the thing we're going to be testing, API 
+// For the API client, let's go ahead and bring in the client, which is the thing we're going to be testing, API
 // client. For each of these tests, let's just get rid of that, to do, right there.
 
-// In review, what we wanted to do here is call the client with a given endpoint, make sure that it makes a GET 
-// request to that endpoint, and return the result returned from that endpoint. To do all this, we had to use an 
-// MSW server that we had set up in this project already. We also brought in the client, of course, and the API URL 
+// In review, what we wanted to do here is call the client with a given endpoint, make sure that it makes a GET
+// request to that endpoint, and return the result returned from that endpoint. To do all this, we had to use an
+// MSW server that we had set up in this project already. We also brought in the client, of course, and the API URL
 // that the client's using.
 
-// We started the server before the test run, we set it up to stop after the tests are finished, and we set it up to 
-// clear all of these runtime handlers between each test. I just realized we should probably make this an afterEach, 
+// We started the server before the test run, we set it up to stop after the tests are finished, and we set it up to
+// clear all of these runtime handlers between each test. I just realized we should probably make this an afterEach,
 // so that we clear it immediately after each one of the test.
 
-// It doesn't make a huge difference whether we use it before or after. It makes more sense to me that we would use 
+// It doesn't make a huge difference whether we use it before or after. It makes more sense to me that we would use
 // after to say that we clear them after each test, because the test is the thing that set this up in the first place.
 
-// Then we created an endpoint that we wanted to hit, we created a mock result that we wanted to return, we awaited 
-// the client at that endpoint, and we verified the result we got back from the client is the same one that we send 
+// Then we created an endpoint that we wanted to hit, we created a mock result that we wanted to return, we awaited
+// the client at that endpoint, and we verified the result we got back from the client is the same one that we send
 // back from the server.
 
 // Test if a Request has an Auth Header ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For our API client, if we pass a token, it will behave a little bit differently because it's going to set this 
+// For our API client, if we pass a token, it will behave a little bit differently because it's going to set this
 // authorization header. We want to make sure that authorization header makes it to our server.
 
-// In review, what we did here is copy lots of the stuff that we're doing over here, and then just get rid of the 
-// assertions and other things that we didn't need and add a variable to assign to this request so we can assert that 
+// In review, what we did here is copy lots of the stuff that we're doing over here, and then just get rid of the
+// assertions and other things that we didn't need and add a variable to assign to this request so we can assert that
 // that request has the information that our backend will need to authorize the request.
+
+// Client Request Config Overrides //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Another thing that our client allows us the ability to override configuration both for the headers and the rest
+// of the config, so we can override the method or the body or anything that we want to, so let's make sure that that
+// still works.
+
+// We're going to come over here and copy all of this because we're going to be doing several of the same things.
+// We'll paste it right here. We don't need a token, so we're not going to pass that token, but we do need to have a
+// customConfig. That's what we'll put right here, customConfig.
+
+// For config overrides, we create our own custom config here, pass it along to the client, make sure we're
+// listening for the right request based on the method that we're going to customize we verify that the content
+// type is what we specified here.
