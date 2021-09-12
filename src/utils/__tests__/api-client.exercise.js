@@ -26,37 +26,53 @@ test('calls fetch at the endpoint with the arguments for GET requests', async ()
       return res(ctx.json(mockResult))
     }),
   )
+
   const result = await client(endpoint)
+
   expect(result).toEqual(mockResult)
 })
 
-test('adds auth token when a token is provided', async () => {})
-// 🐨 create a fake token (it can be set to any string you want)
-// 🐨 create a "request" variable with let
-// 🐨 create a server handler to handle a test request you'll be making
-// 🐨 inside the server handler, assign "request" to "req" so we can use that
-//     to assert things later.
-//     💰 so, something like...
-//       async (req, res, ctx) => {
-//         request = req
-//         ... etc...
-//
-// 🐨 call the client with the token (note that it's async)
-// 🐨 verify that `request.headers.get('Authorization')` is correct (it should include the token)
+// 🐨 create a fake token (it can be set to any string you want) (X)
+// 🐨 create a "request" variable with let (X)
+// 🐨 create a server handler to handle a test request you'll be making (X)
+// 🐨 inside the server handler, assign "request" to "req" so we can use that (X)
+// 🐨 call the client with the token (note that it's async) (X)
+// 🐨 verify that `request.headers.get('Authorization')` is correct (it should include the token) (X)
+test('adds auth token when a token is provided', async () => {
+  const token = 'FAKE_TOKEN'
 
-test('allows for config overrides', async () => {})
+  let request 
+  const endpoint = 'test-endpoint'
+  const mockResult = {mockValue: 'VALUE'}
+  server.use(
+    rest.get(`${apiURL}/${endpoint}`, async (req, res, ctx) => {
+      request = req
+      return res(ctx.json(mockResult))
+    }),
+  )
+  await client(endpoint, {token})
+
+  expect(request.headers.get('Authorization')).toBe(`Bearer ${token}`)
+})
+
 // 🐨 do a very similar setup to the previous test
 // 🐨 create a custom config that specifies properties like "mode" of "cors" and a custom header
 // 🐨 call the client with the endpoint and the custom config
 // 🐨 verify the request had the correct properties
+test('allows for config overrides', async () => {
 
-test('when data is provided, it is stringified and the method defaults to POST', async () => {})
+})
+
+
 // 🐨 create a mock data object
 // 🐨 create a server handler very similar to the previous ones to handle the post request
 //    💰 Use rest.post instead of rest.get like we've been doing so far
 // 🐨 call client with an endpoint and an object with the data
 //    💰 client(endpoint, {data})
 // 🐨 verify the request.body is equal to the mock data object you passed
+test('when data is provided, it is stringified and the method defaults to POST', async () => {
+
+})
 
 
 // Set up a Server to Test Requests /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,3 +95,12 @@ test('when data is provided, it is stringified and the method defaults to POST',
 // Then we created an endpoint that we wanted to hit, we created a mock result that we wanted to return, we awaited 
 // the client at that endpoint, and we verified the result we got back from the client is the same one that we send 
 // back from the server.
+
+// Test if a Request has an Auth Header ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// For our API client, if we pass a token, it will behave a little bit differently because it's going to set this 
+// authorization header. We want to make sure that authorization header makes it to our server.
+
+// In review, what we did here is copy lots of the stuff that we're doing over here, and then just get rid of the 
+// assertions and other things that we didn't need and add a variable to assign to this request so we can assert that 
+// that request has the information that our backend will need to authorize the request.
