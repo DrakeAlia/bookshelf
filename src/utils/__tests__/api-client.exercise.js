@@ -106,21 +106,16 @@ test('when data is provided, it is stringified and the method defaults to POST',
   expect(result).toEqual(data)
 })
 
-test('automatically logs the user out if a request returns a 401', async () => {
+test('correctly rejects the promise if there is an error', async () => {
   const endpoint = 'test-endpoint'
-  const mockResult = {mockValue: 'VALUE'}
+  const testError = {message: 'Test error'}
   server.use(
     rest.get(`${apiURL}/${endpoint}`, async (req, res, ctx) => {
-      return res(ctx.status(401), ctx.json(mockResult))
+      return res(ctx.status(400), ctx.json(testError))
     }),
   )
 
-  const result = await client(endpoint).catch(e => e)
-
-  expect(result.message).toMatchInlineSnapshot(`"Please re-authenticate."`)
-
-  expect(queryCache.clear).toHaveBeenCalledTimes(1)
-  expect(auth.logout).toHaveBeenCalledTimes(1)
+  await expect(client(endpoint)).rejects.toEqual(testError)
 })
 
 // Set up a Server to Test Requests /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,7 +176,7 @@ test('automatically logs the user out if a request returns a 401', async () => {
 // this particular feature.
 
 
-// Automatic Log Out on 401 Error //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Automatic Log Out on 401 Error (Extra) //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // This is all fine and dandy if everything is going OK, but what happens if there is an error? In the API client, if 
 // we get an error from the response where the response status is 401, then we're going to clear the queryCache, 
@@ -195,3 +190,18 @@ test('automatically logs the user out if a request returns a 401', async () => {
 // We make the request, which we know will fail, so we catch that, convert that promise from rejected to resolved by 
 // just returning the rejected value. We get that result. We verify the result message is, "Please reauthenticate 
 // using toMatchInlineSnapshot." Then we verify that the queryCache is cleared and auth.logOut is called.
+
+// Ensure Promise Rejects on Error (Extra) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// What if it's not a 401, but the request fails? We get a response, OK is false. Let's test that scenario.
+
+// I'm going to copy and paste the same thing. Instead of status of 401 we're going to do a 400, so as an invalid 
+// request, there was something wrong with the request. This one is going to be "Correctly rejects the promise if 
+// there is an error."
+
+// As much as I like this handy little way of turning a rejected promise into a resolved promise, it does come with 
+// its shortcomings. Using this handy utility from expect will help us avoid that, or we can add an assertion here 
+// that this promise will reject.
+
+// Remember, you must include the await here, or you return the promise that comes back from expect when you use 
+// rejects or resolves because this assertion doesn't run until this promise rejects or resolves.
