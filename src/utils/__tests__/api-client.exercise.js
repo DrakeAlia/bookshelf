@@ -55,10 +55,10 @@ test('adds auth token when a token is provided', async () => {
   expect(request.headers.get('Authorization')).toBe(`Bearer ${token}`)
 })
 
-// 🐨 do a very similar setup to the previous test
-// 🐨 create a custom config that specifies properties like "mode" of "cors" and a custom header
-// 🐨 call the client with the endpoint and the custom config
-// 🐨 verify the request had the correct properties
+// 🐨 do a very similar setup to the previous test (X)
+// 🐨 create a custom config that specifies properties like "mode" of "cors" and a custom header (X)
+// 🐨 call the client with the endpoint and the custom config (X)
+// 🐨 verify the request had the correct properties (X)
 test('allows for config overrides', async () => {
   let request
   const endpoint = 'test-endpoint'
@@ -82,13 +82,24 @@ test('allows for config overrides', async () => {
   )
 })
 
-// 🐨 create a mock data object
-// 🐨 create a server handler very similar to the previous ones to handle the post request
-//    💰 Use rest.post instead of rest.get like we've been doing so far
-// 🐨 call client with an endpoint and an object with the data
-//    💰 client(endpoint, {data})
-// 🐨 verify the request.body is equal to the mock data object you passed
-test('when data is provided, it is stringified and the method defaults to POST', async () => {})
+// 🐨 create a mock data object (X)
+// 🐨 create a server handler very similar to the previous ones to handle the post request (X)
+// 🐨 call client with an endpoint and an object with the data  (X)
+// 🐨 verify the request.body is equal to the mock data object you passed (X)
+test('when data is provided, it is stringified and the method defaults to POST', async () => {
+  const endpoint = 'test-endpoint'
+  server.use(
+    rest.post(`${apiURL}/${endpoint}`, async (req, res, ctx) => {
+      return res(ctx.json(req.body))
+    }),
+  )
+
+  const data = {a: 'b'}
+
+  const result = await client(endpoint, {data})
+
+  expect(result).toEqual(data)
+})
 
 // Set up a Server to Test Requests /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -133,3 +144,17 @@ test('when data is provided, it is stringified and the method defaults to POST',
 // For config overrides, we create our own custom config here, pass it along to the client, make sure we're
 // listening for the right request based on the method that we're going to customize we verify that the content
 // type is what we specified here.
+
+
+// POST by Default when Body Present and Stringified ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Another thing that's really important that our client does is send the body and the method automatically if we 
+// pass some data, as well as the content type. We want to test for all of those cases.
+
+// We're going to do a lot of the same stuff that we were doing in this previous test. I'll copy this. We'll paste it 
+// right here. For this one, we could make assertions on the request and make sure that the body is what it should be.
+
+// In review what we did here is copy and paste lots of the previous test to have a server that's listening on POST 
+// for this endpoint, simply returning the request body. Then we send this data along and verify that the result we 
+// got from the server is the same thing that we sent along as the data. That gives us all the confidence we need for 
+// this particular feature.
