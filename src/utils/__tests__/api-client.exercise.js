@@ -11,15 +11,6 @@ const apiURL = process.env.REACT_APP_API_URL
 jest.mock('react-query')
 jest.mock('auth-provider')
 
-// 🐨 add a beforeAll to start the server with `server.listen()` (X)
-// 🐨 add an afterAll to stop the server when `server.close()` (X)
-// 🐨 afterEach test, reset the server handlers to their original handlers
-// via `server.resetHandlers()` (X)
-
-beforeAll(() => server.listen())
-afterAll(() => server.close())
-afterEach(() => server.resetHandlers())
-
 // 🐨 add a server handler to handle a test request you'll be making (X)
 // 🐨 call the client (don't forget that it's asynchronous) (X)
 // 🐨 assert that the resolved value from the client call is correct (X)
