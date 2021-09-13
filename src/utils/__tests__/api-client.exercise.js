@@ -3,8 +3,13 @@
 import {server, rest} from 'test/server'
 // 🐨 grab the client (X)
 import {client} from '../api-client'
+import {queryCache} from 'react-query'
+import * as auth from 'auth-provider'
 
 const apiURL = process.env.REACT_APP_API_URL
+
+jest.mock('react-query')
+jest.mock('auth-provider')
 
 // 🐨 add a beforeAll to start the server with `server.listen()` (X)
 // 🐨 add an afterAll to stop the server when `server.close()` (X)
@@ -101,6 +106,23 @@ test('when data is provided, it is stringified and the method defaults to POST',
   expect(result).toEqual(data)
 })
 
+test('automatically logs the user out if a request returns a 401', async () => {
+  const endpoint = 'test-endpoint'
+  const mockResult = {mockValue: 'VALUE'}
+  server.use(
+    rest.get(`${apiURL}/${endpoint}`, async (req, res, ctx) => {
+      return res(ctx.status(401), ctx.json(mockResult))
+    }),
+  )
+
+  const result = await client(endpoint).catch(e => e)
+
+  expect(result.message).toMatchInlineSnapshot(`"Please re-authenticate."`)
+
+  expect(queryCache.clear).toHaveBeenCalledTimes(1)
+  expect(auth.logout).toHaveBeenCalledTimes(1)
+})
+
 // Set up a Server to Test Requests /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // For the API client, let's go ahead and bring in the client, which is the thing we're going to be testing, API
@@ -145,16 +167,31 @@ test('when data is provided, it is stringified and the method defaults to POST',
 // listening for the right request based on the method that we're going to customize we verify that the content
 // type is what we specified here.
 
-
 // POST by Default when Body Present and Stringified ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Another thing that's really important that our client does is send the body and the method automatically if we 
+// Another thing that's really important that our client does is send the body and the method automatically if we
 // pass some data, as well as the content type. We want to test for all of those cases.
 
-// We're going to do a lot of the same stuff that we were doing in this previous test. I'll copy this. We'll paste it 
+// We're going to do a lot of the same stuff that we were doing in this previous test. I'll copy this. We'll paste it
 // right here. For this one, we could make assertions on the request and make sure that the body is what it should be.
 
-// In review what we did here is copy and paste lots of the previous test to have a server that's listening on POST 
-// for this endpoint, simply returning the request body. Then we send this data along and verify that the result we 
-// got from the server is the same thing that we sent along as the data. That gives us all the confidence we need for 
+// In review what we did here is copy and paste lots of the previous test to have a server that's listening on POST
+// for this endpoint, simply returning the request body. Then we send this data along and verify that the result we
+// got from the server is the same thing that we sent along as the data. That gives us all the confidence we need for
 // this particular feature.
+
+
+// Automatic Log Out on 401 Error //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// This is all fine and dandy if everything is going OK, but what happens if there is an error? In the API client, if 
+// we get an error from the response where the response status is 401, then we're going to clear the queryCache, 
+// log the user out, and refresh the page for them. We probably want to make sure that those things aren't happening 
+// in our test.
+
+// In review, for this test, we did the same thing our first test did with the happy path for this test. We just 
+// modified it for sending the status of 401, which indicates to the client that the user is making a request that 
+// they're not allowed to do, probably because their token is expired, and they need to log in again.
+
+// We make the request, which we know will fail, so we catch that, convert that promise from rejected to resolved by 
+// just returning the rejected value. We get that result. We verify the result message is, "Please reauthenticate 
+// using toMatchInlineSnapshot." Then we verify that the queryCache is cleared and auth.logOut is called.
