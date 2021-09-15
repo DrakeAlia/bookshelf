@@ -35,42 +35,52 @@ function deferred() {
   return {promise, resolve, reject}
 }
 
+const defaultState = {
+  isIdle: true,
+  isLoading: false,
+  isError: false,
+  isSuccess: false,
+  setData: expect.any(Function),
+  setError: expect.any(Function),
+  error: null,
+  status: 'idle',
+  data: null,
+  run: expect.any(Function),
+  reset: expect.any(Function),
+}
+
+const pendingState = {
+  ...defaultState,
+  status: 'pending',
+  isIdle: false,
+  isLoading: true,
+}
+
+const resolvedState = {
+  ...defaultState,
+  status: 'resolved',
+  isIdle: false,
+  isSuccess: true,
+}
+
+const rejectedState = {
+  ...defaultState,
+  status: 'rejected',
+  isIdle: false,
+  isError: true,
+}
+
 test('calling run with a promise which resolves', async () => {
   const {promise, resolve} = deferred()
   const {result} = renderHook(() => useAsync())
-  expect(result.current).toEqual({
-    isIdle: true,
-    isLoading: false,
-    isError: false,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'idle',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
-  })
+  expect(result.current).toEqual(defaultState)
 
   let p
   act(() => {
     result.current.run(promise)
   })
 
-  expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: true,
-    isError: false,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'pending',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
-  })
-
+  expect(result.current).toEqual(pendingState)
   const resolvedValue = Symbol('resolved value')
   await act(async () => {
     resolve(resolvedValue)
@@ -78,36 +88,15 @@ test('calling run with a promise which resolves', async () => {
   })
 
   expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: false,
-    isError: false,
-    isSuccess: true,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'resolved',
+    ...resolvedState,
     data: resolvedValue,
-    run: expect.any(Function),
-    reset: expect.any(Function),
   })
 
   act(() => {
     result.current.reset()
   })
 
-  expect(result.current).toEqual({
-    isIdle: true,
-    isLoading: false,
-    isError: false,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'idle',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
-  })
+  expect(result.current).toEqual(defaultState)
 })
 
 // 🐨 this will be very similar to the previous test, except you'll reject the
@@ -117,38 +106,14 @@ test('calling run with a promise which resolves', async () => {
 test('calling run with a promise which rejects', async () => {
   const {promise, reject} = deferred()
   const {result} = renderHook(() => useAsync())
-  expect(result.current).toEqual({
-    isIdle: true,
-    isLoading: false,
-    isError: false,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'idle',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
-  })
+  expect(result.current).toEqual(defaultState)
 
   let p
   act(() => {
     p = result.current.run(promise)
   })
 
-  expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: true,
-    isError: false,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'pending',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
-  })
+  expect(result.current).toEqual(pendingState)
 
   const rejectedValue = Symbol('rejected value')
   await act(async () => {
@@ -159,36 +124,15 @@ test('calling run with a promise which rejects', async () => {
   })
 
   expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: false,
-    isError: true,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
+    ...rejectedState,
     error: rejectedValue,
-    status: 'rejected',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
   })
 
   act(() => {
     result.current.reset()
   })
 
-  expect(result.current).toEqual({
-    isIdle: true,
-    isLoading: false,
-    isError: false,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'idle',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
-  })
+  expect(result.current).toEqual(defaultState)
 })
 
 test('can specify an initial state', async () => {
@@ -197,17 +141,8 @@ test('can specify an initial state', async () => {
   const {result} = renderHook(() => useAsync(customInitialState))
 
   expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: false,
-    isError: false,
-    isSuccess: true,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'resolved',
+    ...resolvedState,
     data: mockData,
-    run: expect.any(Function),
-    reset: expect.any(Function),
   })
 })
 
@@ -219,17 +154,8 @@ test('can set the data', async () => {
   })
 
   expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: false,
-    isError: false,
-    isSuccess: true,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
-    error: null,
-    status: 'resolved',
+    ...resolvedState,
     data: mockData,
-    run: expect.any(Function),
-    reset: expect.any(Function),
   })
 })
 
@@ -241,17 +167,8 @@ test('can set the error', async () => {
   })
 
   expect(result.current).toEqual({
-    isIdle: false,
-    isLoading: false,
-    isError: true,
-    isSuccess: false,
-    setData: expect.any(Function),
-    setError: expect.any(Function),
+    ...rejectedState,
     error: mockError,
-    status: 'rejected',
-    data: null,
-    run: expect.any(Function),
-    reset: expect.any(Function),
   })
 })
 
@@ -392,16 +309,31 @@ test('calling "run" without a promise results in an early error', async () => {
 
 // Call run without Promise Errors ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// The last thing that we want to test here is calling run without a promise results in an early error. This one's 
-// going to be pretty simple. We experienced it already. All we're going to do here is get the results from calling 
+// The last thing that we want to test here is calling run without a promise results in an early error. This one's
+// going to be pretty simple. We experienced it already. All we're going to do here is get the results from calling
 // render hook with useAsync. Then we can call result.current run with nothing, and we're going to get that error.
 
-// If your hook is doing some runtime validation like this or throwing some error, and you want to make an assertion 
-// on that, then you pass a function to expect. Expect will call that function around a try...catch, and then you 
-// can use toThrowErrorMatchingInlineSnapshot, and Jest will take a snapshot of that error message and stick it 
+// If your hook is doing some runtime validation like this or throwing some error, and you want to make an assertion
+// on that, then you pass a function to expect. Expect will call that function around a try...catch, and then you
+// can use toThrowErrorMatchingInlineSnapshot, and Jest will take a snapshot of that error message and stick it
 // into your test code for you.
 
-// This makes it easy to update the error message. If we wanted to, we just hit the U key, and it'll update our code 
-// for us automatically. I don't want to do that. We're going to save that. We'll hit the U key again, and 
+// This makes it easy to update the error message. If we wanted to, we just hit the U key, and it'll update our code
+// for us automatically. I don't want to do that. We're going to save that. We'll hit the U key again, and
 // there we go.
 
+
+// AHA Testing (Extra) //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// As I was writing all these tests, all the copy and paste made me twitch a little bit. There's a lot of duplication 
+// in these tests, especially with each one of these assertions of all the state. I think we're in a pretty good 
+// position to abstract a bunch of this stuff.
+
+// The current state now is the default, and then we go to pending. Then we're resolved state, and here's our data. 
+// Then we go to our default state again. Here is our default. Here's our pending. Now it's a rejected state with 
+// here's our error. Here is a resolved state with our data. Here's our resolved state with our data. Here's our 
+// rejected state with our error.
+
+// We waited until we could see a very clear abstraction into this object and then we were able to really easily 
+// take all of the copy-paste that we had before and abstract it into these different objects. That made our test so 
+// much easier to understand.
