@@ -204,7 +204,6 @@ test('calling run with a promise which rejects', async () => {
   })
 })
 
-// 💰 useAsync(customInitialState)
 test('can specify an initial state', async () => {
   const mockData = Symbol('resolved value')
   const customInitialState = {status: 'resolved', data: mockData}
@@ -225,11 +224,50 @@ test('can specify an initial state', async () => {
   })
 })
 
-// 💰 result.current.setData('whatever you want')
-test('can set the data', async () => {})
+test('can set the data', async () => {
+  const mockData = Symbol('resolved value')
+  const {result} = renderHook(() => useAsync())
+  act(() => {
+    result.current.setData(mockData)
+  })
 
-// 💰 result.current.setError('whatever you want')
-test('can set the error', async () => {})
+  expect(result.current).toEqual({
+    isIdle: false,
+    isLoading: false,
+    isError: false,
+    isSuccess: true,
+    setData: expect.any(Function),
+    setError: expect.any(Function),
+    error: null,
+    status: 'resolved',
+    data: mockData,
+    run: expect.any(Function),
+    reset: expect.any(Function),
+  })
+})
+
+
+test('can set the error', async () => {
+    const mockError = Symbol('rejected value')
+    const {result} = renderHook(() => useAsync())
+    act(() => {
+        result.current.setError(mockError)
+    })
+  
+    expect(result.current).toEqual({
+      isIdle: false,
+      isLoading: false,
+      isError: true,
+      isSuccess: false,
+      setData: expect.any(Function),
+      setError: expect.any(Function),
+      error: mockError,
+      status: 'rejected',
+      data: null,
+      run: expect.any(Function),
+      reset: expect.any(Function),
+    })
+})
 
 // 💰 const {result, unmount} = renderHook(...)
 // 🐨 ensure that console.error is not called (React will call console.error if updates happen when unmounted)
@@ -308,13 +346,30 @@ test('calling "run" without a promise results in an early error', async () => {}
 // We verified that our status was successfully set to rejected. Our data is null, our error is the rejected value,
 // isError is true and isSuccess is false. Then we're still able to reset us back to the original state.
 
-
 // Can Specify an Initial State //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// There's another feature of our hook here that we want to test, and that is that you can specify an initialState. 
-// Let's verify that behavior. We're still going to want to get a result from renderHook, and we'll call a useAsync, 
-// but this time, we're going to call useAsync with an argument. I'm going to make a variable called 
+// There's another feature of our hook here that we want to test, and that is that you can specify an initialState.
+// Let's verify that behavior. We're still going to want to get a result from renderHook, and we'll call a useAsync,
+// but this time, we're going to call useAsync with an argument. I'm going to make a variable called
 // customInitialState.
 
-// In review, we have some customInitialState with a status of resolved, and the mockData as a symbol that we can 
+// In review, we have some customInitialState with a status of resolved, and the mockData as a symbol that we can
 // assert on in here, after we render this hook. It allows us to initialize the state for our useAsync hook.
+
+// Can Set the Data ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Now, we want to verify that we can indeed set the data. Let's make a test for that as well. Lots of this is going 
+// to be the same as our previous test. I'm going to copy and paste that. Instead of having some initialState, 
+// we'll just get rid of that. Right from the get-go, we're going to call result.current.setData with mockData.
+
+// Luckily, for us, this is very, very similar to our next one. This was so quick I'll go ahead and do that one 
+// right now as well. Instead of a resolveValue this will be a rejectedValue here. We'll call this our MockError 
+// and instead of resolve this will be rejected. Instead of this as our data, we're going to have our data as null 
+// and the error as the MockError.
+
+// Instead of calling setData, we'll call setError, instead of errorIsFalse, that'll be true, and our success will 
+// be false. That should get us passing. Let's just make sure that we can make that fail. Indeed, we can. We're 
+// in a good place with both setting the data and setting the error.
+
+// In review, we handled both setData and setError right here by rendering the hook, wrapping our stateUpdate 
+// inside of act and calling that function, and then asserting that our hook's output is correct.
