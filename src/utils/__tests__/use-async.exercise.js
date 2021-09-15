@@ -11,7 +11,6 @@ afterEach(() => {
   console.error.mockRestore()
 })
 
-
 // 🐨 get a promise and resolve function from the deferred utility (X)
 // 🐨 use renderHook with useAsync to get the result (X)
 // 🐨 assert the result.current is the correct default state (X)
@@ -272,7 +271,12 @@ test('No state updates happen if the component is unmounted while pending', asyn
   expect(console.error).not.toHaveBeenCalled()
 })
 
-test('calling "run" without a promise results in an early error', async () => {})
+test('calling "run" without a promise results in an early error', async () => {
+  const {result} = renderHook(() => useAsync())
+  expect(() => result.current.run()).toThrowErrorMatchingInlineSnapshot(
+    `"The argument passed to useAsync().run must be a promise. Maybe a function that's passed isn't returning anything?"`,
+  )
+})
 
 // Set up useAsync Test with renderHook ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -375,13 +379,29 @@ test('calling "run" without a promise results in an early error', async () => {}
 
 // No State Updates if Unmounted ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// You may have noticed these safeSetState() function calls. This is coming from our useSafeDispatch custom hook that 
+// You may have noticed these safeSetState() function calls. This is coming from our useSafeDispatch custom hook that
 // ensures that we never call a stateUpdate when our component has been unmounted.
 
-// That's normally not a big deal, but it's pretty simple to workaround. I'm going to move both of these up here, 
-// we're going to put those in my clipboard, and I'm going to go up to the very top, and we'll add a beforeEach. 
+// That's normally not a big deal, but it's pretty simple to workaround. I'm going to move both of these up here,
+// we're going to put those in my clipboard, and I'm going to go up to the very top, and we'll add a beforeEach.
 // We'll put that in there and then an afterEach. We'll put the console.error.mockRestore in there.
 
-// That way, we make sure that console.error is mocked for every test, and the original value is restored after every 
-// test. Even if a test fails, we'll still restore the console's original implementation, so we don't mess with 
+// That way, we make sure that console.error is mocked for every test, and the original value is restored after every
+// test. Even if a test fails, we'll still restore the console's original implementation, so we don't mess with
 // other tests because test isolation is serious business. We'll save that, and we're in a good state here.
+
+// Call run without Promise Errors ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The last thing that we want to test here is calling run without a promise results in an early error. This one's 
+// going to be pretty simple. We experienced it already. All we're going to do here is get the results from calling 
+// render hook with useAsync. Then we can call result.current run with nothing, and we're going to get that error.
+
+// If your hook is doing some runtime validation like this or throwing some error, and you want to make an assertion 
+// on that, then you pass a function to expect. Expect will call that function around a try...catch, and then you 
+// can use toThrowErrorMatchingInlineSnapshot, and Jest will take a snapshot of that error message and stick it 
+// into your test code for you.
+
+// This makes it easy to update the error message. If we wanted to, we just hit the U key, and it'll update our code 
+// for us automatically. I don't want to do that. We're going to save that. We'll hit the U key again, and 
+// there we go.
+
