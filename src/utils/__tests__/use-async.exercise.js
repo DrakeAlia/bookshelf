@@ -3,26 +3,14 @@ import {renderHook, act} from '@testing-library/react-hooks'
 // 🐨 Here's the thing you'll be testing:
 import {useAsync} from '../hooks'
 
-// 💰 I'm going to give this to you. It's a way for you to create a promise
-// which you can imperatively resolve or reject whenever you want. (X)
-// function deferred() {
-//   let resolve, reject
-//   const promise = new Promise((res, rej) => {
-//     resolve = res
-//     reject = rej
-//   })
-//   return {promise, resolve, reject}
-// }
+beforeEach(() => {
+  jest.spyOn(console, 'error')
+})
 
-// Use it like this:
-// const {promise, resolve} = deferred()
-// promise.then(() => console.log('resolved'))
-// do stuff/make assertions you want to before calling resolve
-// resolve()
-// await promise
-// do stuff/make assertions you want to after the promise has resolved
+afterEach(() => {
+  console.error.mockRestore()
+})
 
-// 🐨 flesh out these tests
 
 // 🐨 get a promise and resolve function from the deferred utility (X)
 // 🐨 use renderHook with useAsync to get the result (X)
@@ -246,32 +234,43 @@ test('can set the data', async () => {
   })
 })
 
-
 test('can set the error', async () => {
-    const mockError = Symbol('rejected value')
-    const {result} = renderHook(() => useAsync())
-    act(() => {
-        result.current.setError(mockError)
-    })
-  
-    expect(result.current).toEqual({
-      isIdle: false,
-      isLoading: false,
-      isError: true,
-      isSuccess: false,
-      setData: expect.any(Function),
-      setError: expect.any(Function),
-      error: mockError,
-      status: 'rejected',
-      data: null,
-      run: expect.any(Function),
-      reset: expect.any(Function),
-    })
+  const mockError = Symbol('rejected value')
+  const {result} = renderHook(() => useAsync())
+  act(() => {
+    result.current.setError(mockError)
+  })
+
+  expect(result.current).toEqual({
+    isIdle: false,
+    isLoading: false,
+    isError: true,
+    isSuccess: false,
+    setData: expect.any(Function),
+    setError: expect.any(Function),
+    error: mockError,
+    status: 'rejected',
+    data: null,
+    run: expect.any(Function),
+    reset: expect.any(Function),
+  })
 })
 
-// 💰 const {result, unmount} = renderHook(...)
 // 🐨 ensure that console.error is not called (React will call console.error if updates happen when unmounted)
-test('No state updates happen if the component is unmounted while pending', async () => {})
+test('No state updates happen if the component is unmounted while pending', async () => {
+  const {promise, resolve} = deferred()
+  const {result, unmount} = renderHook(() => useAsync())
+  let p
+  act(() => {
+    p = result.current.run(promise)
+  })
+  unmount()
+  await act(async () => {
+    resolve()
+    await p
+  })
+  expect(console.error).not.toHaveBeenCalled()
+})
 
 test('calling "run" without a promise results in an early error', async () => {})
 
@@ -358,18 +357,31 @@ test('calling "run" without a promise results in an early error', async () => {}
 
 // Can Set the Data ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Now, we want to verify that we can indeed set the data. Let's make a test for that as well. Lots of this is going 
-// to be the same as our previous test. I'm going to copy and paste that. Instead of having some initialState, 
+// Now, we want to verify that we can indeed set the data. Let's make a test for that as well. Lots of this is going
+// to be the same as our previous test. I'm going to copy and paste that. Instead of having some initialState,
 // we'll just get rid of that. Right from the get-go, we're going to call result.current.setData with mockData.
 
-// Luckily, for us, this is very, very similar to our next one. This was so quick I'll go ahead and do that one 
-// right now as well. Instead of a resolveValue this will be a rejectedValue here. We'll call this our MockError 
-// and instead of resolve this will be rejected. Instead of this as our data, we're going to have our data as null 
+// Luckily, for us, this is very, very similar to our next one. This was so quick I'll go ahead and do that one
+// right now as well. Instead of a resolveValue this will be a rejectedValue here. We'll call this our MockError
+// and instead of resolve this will be rejected. Instead of this as our data, we're going to have our data as null
 // and the error as the MockError.
 
-// Instead of calling setData, we'll call setError, instead of errorIsFalse, that'll be true, and our success will 
-// be false. That should get us passing. Let's just make sure that we can make that fail. Indeed, we can. We're 
+// Instead of calling setData, we'll call setError, instead of errorIsFalse, that'll be true, and our success will
+// be false. That should get us passing. Let's just make sure that we can make that fail. Indeed, we can. We're
 // in a good place with both setting the data and setting the error.
 
-// In review, we handled both setData and setError right here by rendering the hook, wrapping our stateUpdate 
+// In review, we handled both setData and setError right here by rendering the hook, wrapping our stateUpdate
 // inside of act and calling that function, and then asserting that our hook's output is correct.
+
+// No State Updates if Unmounted ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// You may have noticed these safeSetState() function calls. This is coming from our useSafeDispatch custom hook that 
+// ensures that we never call a stateUpdate when our component has been unmounted.
+
+// That's normally not a big deal, but it's pretty simple to workaround. I'm going to move both of these up here, 
+// we're going to put those in my clipboard, and I'm going to go up to the very top, and we'll add a beforeEach. 
+// We'll put that in there and then an afterEach. We'll put the console.error.mockRestore in there.
+
+// That way, we make sure that console.error is mocked for every test, and the original value is restored after every 
+// test. Even if a test fails, we'll still restore the console's original implementation, so we don't mess with 
+// other tests because test isolation is serious business. We'll save that, and we're in a good state here.
