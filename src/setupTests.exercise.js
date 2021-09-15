@@ -1,4 +1,5 @@
-// 🐨 enable jest-dom by importing `@testing-library/jest-dom`
+// 🐨 enable jest-dom by importing `@testing-library/jest-dom` (X)
+import '@testing-library/jest-dom'
 import {server} from 'test/server'
 
 // enable API mocking in test runs using the same request handlers
