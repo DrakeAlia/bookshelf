@@ -32,16 +32,24 @@ import {useAsync} from '../hooks'
 //    (💰 this updates state so it needs to be done in an `act` callback)
 // 🐨 assert that result.current is the correct pending state (X)
 
-// 🐨 call resolve and wait for the promise to be resolved
+// 🐨 call resolve and wait for the promise to be resolved (X)
 //    (💰 this updates state too and you'll need it to be an async `act` call so you can await the promise)
-// 🐨 assert the resolved state
-test('calling run with a promise which resolves', async () => {
+// 🐨 assert the resolved state (X)
+
+// 🐨 call `reset` (💰 this will update state, so...) (X)
+// 🐨 assert the result.current has actually been reset (X)
+
+function deferred() {
   let resolve, reject
   const promise = new Promise((res, rej) => {
     resolve = res
     reject = rej
   })
+  return {promise, resolve, reject}
+}
 
+test('calling run with a promise which resolves', async () => {
+  const {promise, resolve} = deferred()
   const {result} = renderHook(() => useAsync())
   expect(result.current).toEqual({
     isIdle: true,
@@ -57,7 +65,7 @@ test('calling run with a promise which resolves', async () => {
     reset: expect.any(Function),
   })
 
-  let p 
+  let p
   act(() => {
     result.current.run(promise)
   })
@@ -95,10 +103,26 @@ test('calling run with a promise which resolves', async () => {
     run: expect.any(Function),
     reset: expect.any(Function),
   })
+
+  act(() => {
+    result.current.reset()
+  })
+
+  expect(result.current).toEqual({
+    isIdle: true,
+    isLoading: false,
+    isError: false,
+    isSuccess: false,
+    setData: expect.any(Function),
+    setError: expect.any(Function),
+    error: null,
+    status: 'idle',
+    data: null,
+    run: expect.any(Function),
+    reset: expect.any(Function),
+  })
 })
 
-// 🐨 call `reset` (💰 this will update state, so...)
-// 🐨 assert the result.current has actually been reset
 
 test('calling run with a promise which rejects', async () => {})
 // 🐨 this will be very similar to the previous test, except you'll reject the
@@ -120,6 +144,7 @@ test('No state updates happen if the component is unmounted while pending', asyn
 // 🐨 ensure that console.error is not called (React will call console.error if updates happen when unmounted)
 
 test('calling "run" without a promise results in an early error', async () => {})
+
 
 // Set up useAsync Test with renderHook ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -157,15 +182,24 @@ test('calling "run" without a promise results in an early error', async () => {}
 
 // Add an async act to Resolve a Promise /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Now that we've run this, and we made an assertion on running this, useAsyncFunction, we're going to resolve this 
-// promise and see what happens next. We'll say resolve, which is going to call this resolve function, which will 
-// trigger this promise to resolve. Then our useAsyncHook will update the state because it attached event handler to 
+// Now that we've run this, and we made an assertion on running this, useAsyncFunction, we're going to resolve this
+// promise and see what happens next. We'll say resolve, which is going to call this resolve function, which will
+// trigger this promise to resolve. Then our useAsyncHook will update the state because it attached event handler to
 // that promise.
 
-// In review, for this one, when we called this resolve it did trigger that update but it happened asynchronously. 
-// We've got an act warning telling us that, "Hey, there was a state update and I don't think that you were expecting 
-// that." Which of course we really were, but we weren't communicating that in our code, and it resulted in our 
+// In review, for this one, when we called this resolve it did trigger that update but it happened asynchronously.
+// We've got an act warning telling us that, "Hey, there was a state update and I don't think that you were expecting
+// that." Which of course we really were, but we weren't communicating that in our code, and it resulted in our
 // result.current not getting updated properly.
 
-// We added an async act to resolve this promise to that specific value. Then we waited for the promise we get back 
+// We added an async act to resolve this promise to that specific value. Then we waited for the promise we get back
 // from run to resolve before continuing on to make our assertion.
+
+// Reset React in a Test ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// One last thing that I want to do here is make sure that I could reset the state. We'll say result.current.reset. 
+// We'll expect all of this stuff to be reset to what it was originally. At first assertion, I'll copy that paste it 
+// right here, and this should pass, which it does, but we are again getting this act warning.
+
+// Great, so that gets us our first use case for calling run with a promise that resolves, and we can assert on 
+// every state change that happens throughout that process.
