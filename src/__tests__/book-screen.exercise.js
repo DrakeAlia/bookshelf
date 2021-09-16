@@ -10,15 +10,23 @@ import {App} from 'app'
 // 🐨 after each test, clear the queryCache and auth.logout
 
 test('renders all the book information', async () => {
+  const user = buildUser()
   window.localStorage.setItem(auth.localStorageKey, 'SOME_FAKE_TOKEN')
 
+  const book = buildBook('book/id')
+  window.history.pushState({}, 'Test page', `/book/${book.id}`)
   const originalFetch = window.fetch
   window.fetch = async (url, config) => {
     if (url.endsWith('/bootstrap')) {
       return {
         ok: true,
-        json: async () => ({user: {username: 'bob'}, listItems: []}),
+        json: async () => ({
+          user: {...user, token: 'SOME_FAKE_TOKEN'},
+          listItems: [],
+        }),
       }
+    } else if (url.endsWith(`/books/${book.id}`)) {
+      return {ok: true, json: async () => ({book})}
     }
     return originalFetch(url, config)
   }
@@ -85,7 +93,7 @@ test('renders all the book information', async () => {
 // We'll call this callback every time there's a DOM change
 // or on a regular interval, and it will prevent our test from running any further until that element no longer returns.
 
-// Reverse-engineer AuthProvide and Log //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Reverse-engineer AuthProvide and Log In //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // We're not on the right screen right now. We should be logged in rather than showing the log in and register. We need to trick our application in the thinking that we're logged in.
 
@@ -98,3 +106,15 @@ test('renders all the book information', async () => {
 // If we dive into our API client, then that is exactly what we need. We need to have a response with a JSON function that's async, so we can await it and then respond, "OK, needs to be true," so it returns that data.
 
 // With all of that setup, now we're in the locked inside of the application.
+
+// Render a Book Page in a Test ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Before we render our app, let's navigate to that page so when our app is rendered, we're already at the right spot. We're going to say window.history pushState, but the first argument is the state. We don't really care about that.
+
+// In review, we did a couple of things here. First, we wanted to get our test on the route that the user's going to land on for the bookScreen. We used window.history.pushState to get us on the right page. We also generated a book and we used that books id.
+
+// Then through this process, we noticed that our API Mark here was not complete. Even though our test was passing, the code wasn't functioning the way that it actually would in production. We needed to fix our API Mark a little bit to send that token along with the bootstrap request.
+
+// Then with all this set up, our code started to make a request to the books endpoint for the book that we landed on. We had to add an additional handler here, and we simply returned the book information that our backend would return if we hit our backend at that url.
+
+// Doing all of that made it so that when we called screen.debug, we see that we are on the book page and we see all of the book's information.
