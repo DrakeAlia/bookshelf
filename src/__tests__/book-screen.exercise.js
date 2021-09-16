@@ -10,9 +10,22 @@ import {App} from 'app'
 // 🐨 after each test, clear the queryCache and auth.logout
 
 test('renders all the book information', async () => {
-    render(<App />, {wrapper: AppProviders})
-    await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
-    screen.debug()
+  window.localStorage.setItem(auth.localStorageKey, 'SOME_FAKE_TOKEN')
+
+  const originalFetch = window.fetch
+  window.fetch = async (url, config) => {
+    if (url.endsWith('/bootstrap')) {
+      return {
+        ok: true,
+        json: async () => ({user: {username: 'bob'}, listItems: []}),
+      }
+    }
+    return originalFetch(url, config)
+  }
+
+  render(<App />, {wrapper: AppProviders})
+  await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
+  screen.debug()
 })
 // 🐨 "authenticate" the client by setting the auth.localStorageKey in localStorage to some string value (can be anything for now)
 
@@ -39,36 +52,49 @@ test('renders all the book information', async () => {
 
 // 🐨 assert the book's info is in the document
 
-
 // Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Let's get started by making this an async test. I know that this will be async, and pretty much all integration 
-// tests will be. The first thing that we want to do is render our app. Let's import the app from that App Module 
+// Let's get started by making this an async test. I know that this will be async, and pretty much all integration
+// tests will be. The first thing that we want to do is render our app. Let's import the app from that App Module
 // that we've got.
 
-// If we're going to want to create an app element, we'll need to import react from 'react' to create React elements, 
-// and we'll import render from '@testing-library/react.' We'll also want to interact with the screen. We'll do 
+// If we're going to want to create an app element, we'll need to import react from 'react' to create React elements,
+// and we'll import render from '@testing-library/react.' We'll also want to interact with the screen. We'll do
 // screen here, then we'll render the app, and we'll say screen.debug.
 
-// Now, we've got a full-page spinner. We're rendering the app, and it's attempting to load the user's information. 
-// We've got some act warnings that we can deal with later. Let's go ahead and stop here and review what we've done 
+// Now, we've got a full-page spinner. We're rendering the app, and it's attempting to load the user's information.
+// We've got some act warnings that we can deal with later. Let's go ahead and stop here and review what we've done
 // so far.
 
-// First, we're rendering the entire application. That's what an integration test is. In particular, we're going to 
-// be just rendering the book screen, but we want to render everything, including our router, and our query provider 
+// First, we're rendering the entire application. That's what an integration test is. In particular, we're going to
+// be just rendering the book screen, but we want to render everything, including our router, and our query provider
 // for a react-query, and our own authentication provider.
 
-// We're going to render the app itself and then make sure we can land on the book screen to test that specific 
-// book screen. This is to get us going. We're rendering our app in the same way that we're rendering it in 
+// We're going to render the app itself and then make sure we can land on the book screen to test that specific
+// book screen. This is to get us going. We're rendering our app in the same way that we're rendering it in
 // production. By doing this, we are well on our way to writing an integration test for the booking screen.
 
 // Wait for Loading Element to Be Removed //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Now we want to wait for this full-page spinner to go 
-// away, and it's got a label of loading for screen readers. We can query it by that, and wait for that to go away. 
+// Now we want to wait for this full-page spinner to go
+// away, and it's got a label of loading for screen readers. We can query it by that, and wait for that to go away.
 // There's a utility for that, waitForElementToBeRemoved. Right here we'll await waitForElementToBeRemoved, we'll say screen getByLabelText(/loading/i)).
 
 // This is a quick one. All we did was import waitForElementToBeRemoved, then we added a callback in here and waitForElementToBeRemoved.
 
-// We'll call this callback every time there's a DOM change 
+// We'll call this callback every time there's a DOM change
 // or on a regular interval, and it will prevent our test from running any further until that element no longer returns.
+
+// Reverse-engineer AuthProvide and Log //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// We're not on the right screen right now. We should be logged in rather than showing the log in and register. We need to trick our application in the thinking that we're logged in.
+
+// In review, what we did here was we reverse engineered our AuthProvider and found that they stick some fake token in localStorage.
+
+// They even expose that localStorage key as part of the providers' exports. We're able to trick the authentication provider into thinking that the user is logged in by setting that localStorage key to some fake token.
+
+// Then to make sure that we handle the request that's made when our user lands on the page in the first place and they're logged in, we override window.fetch to handle when the fetch request is to anything at /bootstrap and we return a successful response. Here we say, "OK, true," and JSON is this async function that returns some data.
+
+// If we dive into our API client, then that is exactly what we need. We need to have a response with a JSON function that's async, so we can await it and then respond, "OK, needs to be true," so it returns that data.
+
+// With all of that setup, now we're in the locked inside of the application.
