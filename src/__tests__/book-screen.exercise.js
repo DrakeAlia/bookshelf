@@ -1,6 +1,6 @@
 // 🐨 here are the things you're going to need for this test: (X)
 import * as React from 'react'
-import {render, screen, waitFor} from '@testing-library/react'
+import {render, screen, waitForElementToBeRemoved} from '@testing-library/react'
 import {queryCache} from 'react-query'
 import {buildUser, buildBook} from 'test/generate'
 import * as auth from 'auth-provider'
@@ -11,6 +11,7 @@ import {App} from 'app'
 
 test('renders all the book information', async () => {
     render(<App />, {wrapper: AppProviders})
+    await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
     screen.debug()
 })
 // 🐨 "authenticate" the client by setting the auth.localStorageKey in localStorage to some string value (can be anything for now)
@@ -60,3 +61,14 @@ test('renders all the book information', async () => {
 // We're going to render the app itself and then make sure we can land on the book screen to test that specific 
 // book screen. This is to get us going. We're rendering our app in the same way that we're rendering it in 
 // production. By doing this, we are well on our way to writing an integration test for the booking screen.
+
+// Wait for Loading Element to Be Removed //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Now we want to wait for this full-page spinner to go 
+// away, and it's got a label of loading for screen readers. We can query it by that, and wait for that to go away. 
+// There's a utility for that, waitForElementToBeRemoved. Right here we'll await waitForElementToBeRemoved, we'll say screen getByLabelText(/loading/i)).
+
+// This is a quick one. All we did was import waitForElementToBeRemoved, then we added a callback in here and waitForElementToBeRemoved.
+
+// We'll call this callback every time there's a DOM change 
+// or on a regular interval, and it will prevent our test from running any further until that element no longer returns.
