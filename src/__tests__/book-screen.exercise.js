@@ -1,15 +1,18 @@
-// 🐨 here are the things you're going to need for this test:
-// import * as React from 'react'
-// import {render, screen, waitFor} from '@testing-library/react'
-// import {queryCache} from 'react-query'
-// import {buildUser, buildBook} from 'test/generate'
-// import * as auth from 'auth-provider'
-// import {AppProviders} from 'context'
-// import {App} from 'app'
+// 🐨 here are the things you're going to need for this test: (X)
+import * as React from 'react'
+import {render, screen, waitFor} from '@testing-library/react'
+import {queryCache} from 'react-query'
+import {buildUser, buildBook} from 'test/generate'
+import * as auth from 'auth-provider'
+import {AppProviders} from 'context'
+import {App} from 'app'
 
 // 🐨 after each test, clear the queryCache and auth.logout
 
-test.todo('renders all the book information')
+test('renders all the book information', async () => {
+    render(<App />, {wrapper: AppProviders})
+    screen.debug()
+})
 // 🐨 "authenticate" the client by setting the auth.localStorageKey in localStorage to some string value (can be anything for now)
 
 // 🐨 create a user using `buildUser`
@@ -34,3 +37,26 @@ test.todo('renders all the book information')
 // 💰 if (queryCache.isFetching or there are loading indicators) then throw an error...
 
 // 🐨 assert the book's info is in the document
+
+
+// Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Let's get started by making this an async test. I know that this will be async, and pretty much all integration 
+// tests will be. The first thing that we want to do is render our app. Let's import the app from that App Module 
+// that we've got.
+
+// If we're going to want to create an app element, we'll need to import react from 'react' to create React elements, 
+// and we'll import render from '@testing-library/react.' We'll also want to interact with the screen. We'll do 
+// screen here, then we'll render the app, and we'll say screen.debug.
+
+// Now, we've got a full-page spinner. We're rendering the app, and it's attempting to load the user's information. 
+// We've got some act warnings that we can deal with later. Let's go ahead and stop here and review what we've done 
+// so far.
+
+// First, we're rendering the entire application. That's what an integration test is. In particular, we're going to 
+// be just rendering the book screen, but we want to render everything, including our router, and our query provider 
+// for a react-query, and our own authentication provider.
+
+// We're going to render the app itself and then make sure we can land on the book screen to test that specific 
+// book screen. This is to get us going. We're rendering our app in the same way that we're rendering it in 
+// production. By doing this, we are well on our way to writing an integration test for the booking screen.
