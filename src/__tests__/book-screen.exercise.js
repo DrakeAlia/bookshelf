@@ -1,6 +1,7 @@
 // 🐨 here are the things you're going to need for this test: (X)
 import * as React from 'react'
 import {render, screen, waitForElementToBeRemoved} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {queryCache} from 'react-query'
 import {buildUser, buildBook} from 'test/generate'
 import * as auth from 'auth-provider'
@@ -9,6 +10,7 @@ import {App} from 'app'
 import * as booksDB from 'test/data/books'
 import * as usersDB from 'test/data/users'
 import * as listItemsDB from 'test/data/list-items'
+import {formatDate} from 'utils/misc'
 
 // 🐨 assert the book's info is in the document (X)
 
@@ -32,6 +34,8 @@ import * as listItemsDB from 'test/data/list-items'
 // indicators to go away (X)
 // 📜 https://testing-library.com/docs/dom-testing-library/api-async#waitfor
 // 💰 if (queryCache.isFetching or there are loading indicators) then throw an error...
+// 🐨 render the App component and set the wrapper to the AppProviders (X)
+// (that way, all the same providers we have in the app will be available in our tests)
 
 // 🐨 after each test, clear the queryCache and auth.logout (X)
 afterEach(async () => {
@@ -54,8 +58,6 @@ test('renders all the book information', async () => {
   const route = `/book/${book.id}`
   window.history.pushState({}, 'Test page', route)
 
-  // 🐨 render the App component and set the wrapper to the AppProviders (X)
-  // (that way, all the same providers we have in the app will be available in our tests)
   render(<App />, {wrapper: AppProviders})
 
   await waitForElementToBeRemoved(() => [
@@ -88,6 +90,52 @@ test('renders all the book information', async () => {
   ).not.toBeInTheDocument()
   expect(screen.queryByRole('radio', {name: /star/i})).not.toBeInTheDocument()
   expect(screen.queryByLabelText(/start date/i)).not.toBeInTheDocument()
+})
+
+test('can create a list item for the book', async () => {
+  const user = buildUser()
+  await usersDB.create(user)
+  const authUser = await usersDB.authenticate(user)
+  window.localStorage.setItem(auth.localStorageKey, authUser.token)
+
+  const book = await booksDB.create(buildBook())
+  const route = `/book/${book.id}`
+  window.history.pushState({}, 'Test page', route)
+
+  render(<App />, {wrapper: AppProviders})
+
+  await waitForElementToBeRemoved(() => [
+    ...screen.queryAllByLabelText(/loading/i),
+    ...screen.queryAllByText(/loading/i),
+  ])
+
+  const addToListButton = screen.getByRole('button', {name: /add to list/i})
+  userEvent.click(addToListButton)
+  expect(addToListButton).toBeDisabled()
+
+  await waitForElementToBeRemoved(() => [
+    ...screen.queryAllByLabelText(/loading/i),
+    ...screen.queryAllByText(/loading/i),
+  ])
+
+  expect(
+    screen.getByRole('button', {name: /mark as read/i}),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByRole('button', {name: /remove from list/i}),
+  ).toBeInTheDocument()
+  expect(screen.getByRole('textbox', {name: /notes/i})).toBeInTheDocument()
+
+  const startDateNode = screen.getByLabelText(/start date/i)
+  expect(startDateNode).toHaveTextContent(formatDate(new Date()))
+
+  expect(
+    screen.queryByRole('button', {name: /add to list/i}),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', {name: /mark as unread/i}),
+  ).not.toBeInTheDocument()
+  expect(screen.queryByRole('radio', {name: /star/i})).not.toBeInTheDocument()
 })
 
 // Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,3 +264,18 @@ test('renders all the book information', async () => {
 // Then we also want to make sure that we're in a good non-loading state before we continue with the rest of our
 // tests. We enhanced our wait for element to be removed to make sure we're no longer in the loading state, and
 // then we also cleaned up after each one of our tests.
+
+// Write Second Integration Test (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Now that we've been able to test it that we can load this in and all the data shows up, let's handle the use case 
+// for clicking on the addToList button.
+
+// Let's review what we've got here. For the first part of this test, we need all the same things that we had in our 
+// last test. We need a user, we need a book, and we need to wait for the loading state to go away.
+
+// Then, we can click on the addToList button. We verified that it's disabled when we click on it. Then we wait for 
+// the loading state to go away again. Then we can verify that markAsRead shows up, Remove from list shows up, 
+// the Notes show up, and the startDate is correct.
+
+// Then we verify that addToList isn't there, markAsUnread shouldn't be there, and the star ratings shouldn't be 
+// there either.
