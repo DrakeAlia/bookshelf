@@ -6,7 +6,11 @@ import {buildUser, buildBook} from 'test/generate'
 import * as auth from 'auth-provider'
 import {AppProviders} from 'context'
 import {App} from 'app'
+import * as booksDB from 'test/data/books'
+import * as usersDB from 'test/data/users'
+import * as listItemsDB from 'test/data/list-items'
 
+// 🐨 assert the book's info is in the document (X)
 
 // 🐨 reassign window.fetch to another function and handle the following requests:
 // - url ends with `/bootstrap`: respond with {user, listItems: []} (X)
@@ -31,39 +35,33 @@ import {App} from 'app'
 
 // 🐨 after each test, clear the queryCache and auth.logout (X)
 afterEach(async () => {
-    queryCache.clear()
-    await auth.logout()
+  queryCache.clear()
+  await Promise.all([
+    auth.logout(),
+    usersDB.reset(),
+    booksDB.reset(),
+    listItemsDB.reset(),
+  ])
 })
 
 test('renders all the book information', async () => {
-    const user = buildUser()
-  window.localStorage.setItem(auth.localStorageKey, 'SOME_FAKE_TOKEN')
+  const user = buildUser()
+  await usersDB.create(user)
+  const authUser = await usersDB.authenticate(user)
+  window.localStorage.setItem(auth.localStorageKey, authUser.token)
 
-  const book = buildBook()
+  const book = await booksDB.create(buildBook())
   const route = `/book/${book.id}`
   window.history.pushState({}, 'Test page', route)
-
-  const originalFetch = window.fetch
-  window.fetch = async (url, config) => {
-    if (url.endsWith('/bootstrap')) {
-      return {
-        ok: true,
-        json: async () => ({
-          user: {...user, token: 'SOME_FAKE_TOKEN'},
-          listItems: [],
-        }),
-      }
-    } else if (url.endsWith(`/books/${book.id}`)) {
-      return {ok: true, json: async () => ({book})}
-    }
-    return originalFetch(url, config)
-  }
 
   // 🐨 render the App component and set the wrapper to the AppProviders (X)
   // (that way, all the same providers we have in the app will be available in our tests)
   render(<App />, {wrapper: AppProviders})
 
-  await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
+  await waitForElementToBeRemoved(() => [
+    ...screen.queryAllByLabelText(/loading/i),
+    ...screen.queryAllByText(/loading/i),
+  ])
 
   expect(screen.getByRole('heading', {name: book.title})).toBeInTheDocument()
   expect(screen.getByText(book.title)).toBeInTheDocument()
@@ -91,8 +89,6 @@ test('renders all the book information', async () => {
   expect(screen.queryByRole('radio', {name: /star/i})).not.toBeInTheDocument()
   expect(screen.queryByLabelText(/start date/i)).not.toBeInTheDocument()
 })
-
-// 🐨 assert the book's info is in the document
 
 // Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -197,9 +193,26 @@ test('renders all the book information', async () => {
 
 // Isolate Tests by Cleaning up State and Cache ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// There's one other thing that I want to share before moving on. That is we always want to make sure we clean 
-// things up. As we render through all of this stuff, we're going to be loading the query cache with a bunch of 
+// There's one other thing that I want to share before moving on. That is we always want to make sure we clean
+// things up. As we render through all of this stuff, we're going to be loading the query cache with a bunch of
 // information, and we'll want to clear that out.
 
-// I'm going to add an afterEach() for our cleanup. This is going to be an async function, because we want to 
+// I'm going to add an afterEach() for our cleanup. This is going to be an async function, because we want to
 // await auth.logout.
+
+// Create Mock msw Server (Extra) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// We should probably take this window.fetch mark and move it somewhere more and more general, so it can be used
+// for all of our integration tests.
+
+// Let's review what we did here. We had a window.fetch mock right here that we just wanted to get rid of,
+// because it wasn't giving us enough confidence. We swapped it out for the test server that we already had
+// configured for a previous test that we setup.
+
+// That was configured to have all of these server handlers that were already written, so we can handle every
+// request that our application makes. These server handlers interact with a database and get our test setup
+// before we actually render our app, we interact with that database ourselves.
+
+// Then we also want to make sure that we're in a good non-loading state before we continue with the rest of our
+// tests. We enhanced our wait for element to be removed to make sure we're no longer in the loading state, and
+// then we also cleaned up after each one of our tests.
