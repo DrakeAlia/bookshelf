@@ -13,8 +13,10 @@ test('renders all the book information', async () => {
   const user = buildUser()
   window.localStorage.setItem(auth.localStorageKey, 'SOME_FAKE_TOKEN')
 
-  const book = buildBook('book/id')
-  window.history.pushState({}, 'Test page', `/book/${book.id}`)
+  const book = buildBook()
+  const route = `/book/${book.id}`
+  window.history.pushState({}, 'Test page', route)
+
   const originalFetch = window.fetch
   window.fetch = async (url, config) => {
     if (url.endsWith('/bootstrap')) {
@@ -32,8 +34,36 @@ test('renders all the book information', async () => {
   }
 
   render(<App />, {wrapper: AppProviders})
+
   await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
-  screen.debug()
+
+  expect(screen.getByRole('heading', {name: book.title})).toBeInTheDocument()
+  expect(screen.getByText(book.title)).toBeInTheDocument()
+  expect(screen.getByText(book.author)).toBeInTheDocument()
+  expect(screen.getByText(book.publisher)).toBeInTheDocument()
+  expect(screen.getByText(book.synopsis)).toBeInTheDocument()
+  expect(screen.getByRole('img', {name: /book cover/i})).toHaveAttribute(
+    'src',
+    book.coverImageUrl,
+  )
+  expect(screen.getByRole('button', {name: /add to list/i})).toBeInTheDocument()
+
+  expect(
+    screen.queryByRole('button', {name: /remove to list/i}),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', {name: /mark as read/i}),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', {name: /mark as unread/i}),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('textarea', {name: /notes/i}),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('radio', {name: /star/i}),
+  ).not.toBeInTheDocument()
+  expect(screen.queryByLabelText(/start date/i)).not.toBeInTheDocument()
 })
 // 🐨 "authenticate" the client by setting the auth.localStorageKey in localStorage to some string value (can be anything for now)
 
@@ -118,3 +148,17 @@ test('renders all the book information', async () => {
 // Then with all this set up, our code started to make a request to the books endpoint for the book that we landed on. We had to add an additional handler here, and we simply returned the book information that our backend would return if we hit our backend at that url.
 
 // Doing all of that made it so that when we called screen.debug, we see that we are on the book page and we see all of the book's information.
+
+// Test What UI Elements are Present /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Now that we've successfully rendered our book to the screen, let's make sure that all the book's information is on the screen, and we have the right buttons in place for adding this to our list.
+
+// Let's review this whole thing really quick. The first thing that we did was we rendered our entire application. We noticed that there was a problem with our provider not being rendered, so we added a wrapper option with the app providers. When we did that, we noticed that we're just rendering the loading screen.
+
+// We added waitForElementToBeRemoved, so that we waited until that loading spinner disappeared. Then we noticed we started making some network requests. We mocked fetch to handle those network requests. We wanted to make sure we landed on the book page.
+
+// We built a book and routed ourselves to that book's page. We also made sure that we are tricking our authProvider into thinking we're actually logged in. Again, this will differ based on the authProvider that you use. Some of them you might actually have to mock the entire module itself.
+
+// Once we got all of that set up finished, we were able to make some assertions on what should appear on the screen, as well as what should not. This gives us a huge amount of confidence in the screen page itself and all of the providers and everything else that's doing work to get our users to that screen page.
+
+// Yes, it may be quite a bit of work to get to this point, but it is 100 percent worth it for all of the confidence that we get from this test.
