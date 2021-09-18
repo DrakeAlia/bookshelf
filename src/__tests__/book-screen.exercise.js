@@ -1,6 +1,10 @@
 // 🐨 here are the things you're going to need for this test: (X)
 import * as React from 'react'
-import {render, screen, waitForElementToBeRemoved} from '@testing-library/react'
+import {
+  render as rtlRender,
+  screen,
+  waitForElementToBeRemoved,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {queryCache} from 'react-query'
 import {buildUser, buildBook} from 'test/generate'
@@ -48,6 +52,21 @@ afterEach(async () => {
   ])
 })
 
+async function render(ui, {route = '/list', user, ...renderOptions} = {}) {
+  user = typeof user === 'undefined' ? await loginAsUser() : user
+
+  window.history.pushState({}, 'Test page', route)
+
+  const returnValue = {
+  ...rtlRender(ui, {wrapper: AppProviders, ...renderOptions}),
+  user,
+  }
+
+  await waitForLoadingToFinish()
+
+  return returnValue
+}
+
 async function loginAsUser(userProperties) {
   const user = buildUser(userProperties)
   await usersDB.create(user)
@@ -63,15 +82,9 @@ const waitForLoadingToFinish = () =>
   ])
 
 test('renders all the book information', async () => {
-  await loginAsUser()
-
   const book = await booksDB.create(buildBook())
   const route = `/book/${book.id}`
-  window.history.pushState({}, 'Test page', route)
-
-  render(<App />, {wrapper: AppProviders})
-
-  await waitForLoadingToFinish()
+  await render(<App />, {route})
 
   expect(screen.getByRole('heading', {name: book.title})).toBeInTheDocument()
   expect(screen.getByText(book.title)).toBeInTheDocument()
@@ -101,15 +114,9 @@ test('renders all the book information', async () => {
 })
 
 test('can create a list item for the book', async () => {
-  await loginAsUser()
-
   const book = await booksDB.create(buildBook())
   const route = `/book/${book.id}`
-  window.history.pushState({}, 'Test page', route)
-
-  render(<App />, {wrapper: AppProviders})
-
-  await waitForLoadingToFinish()
+  await render(<App />, {route})
 
   const addToListButton = screen.getByRole('button', {name: /add to list/i})
   userEvent.click(addToListButton)
@@ -281,10 +288,20 @@ test('can create a list item for the book', async () => {
 
 // Abstract Functionality (Extra) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// There are several things in each of these tests that I think 
-// could be shared between them. Let's start with this 
-// waitForElementToBeRemoved business. We're doing this a couple of 
+// There are several things in each of these tests that I think
+// could be shared between them. Let's start with this
+// waitForElementToBeRemoved business. We're doing this a couple of
 // times. We could abstract this away as a very simple function that simply waitForLoadingToFinish(), and that can be an arrow function that just simply returns a call to that.
 
 // Let's review here, all that we did was take two bits of code that were pretty common between both of our tests, and abstracted them out into separate functions, so that we can reduce the amount of duplication, and potentially use this in other integration tests throughout our code base.
 
+
+// Custom Render Function (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// There's still a fair amount of duplication here, I can see all of that, including the wait for loading to finish as well. Why don't we put all of this in a separate function too, so I'm going to make a function and this one, I'm going to call it render. I'm going to change the name of the render that I pull from React Testing Library, and I'll call that as RTL render.
+
+// Let's review what we did. All that we did is make this render function. This render function simulates the render from React Testing Library, except it is async, because in here we can create a user for you automatically, and we wait for loading to finish automatically for you.
+
+// You can proceed from your test right after calling render right here. You don't have to worry about waiting for loading to finish it up at all. We also navigate to a specific route.
+
+// You can provide a route or we navigate to the default route. Then we allow you to specify your own user if you want to or automatically log in as a user. Then we can return that user to you, so you can use its ID or anything else that you need for the test that you're going to be writing.
