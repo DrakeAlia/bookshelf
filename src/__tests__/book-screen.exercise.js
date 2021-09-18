@@ -6,11 +6,13 @@ import {
   screen,
   waitForLoadingToFinish,
   userEvent,
+  loginAsUser,
 } from 'test/app-test-utils'
-import {buildBook} from 'test/generate'
+import {buildBook, buildListItem} from 'test/generate'
 import {App} from 'app'
 import * as booksDB from 'test/data/books'
 import {formatDate} from 'utils/misc'
+import * as listItemsDB from 'test/data/list-items'
 
 test('renders all the book information', async () => {
   const book = await booksDB.create(buildBook())
@@ -73,6 +75,28 @@ test('can create a list item for the book', async () => {
     screen.queryByRole('button', {name: /mark as unread/i}),
   ).not.toBeInTheDocument()
   expect(screen.queryByRole('radio', {name: /star/i})).not.toBeInTheDocument()
+})
+
+test('can remove a list item for the book', async () => {
+  const user = await loginAsUser()
+  const book = await booksDB.create(buildBook())
+  const route = `/book/${book.id}`
+  await listItemsDB.create(buildListItem({owner: user, book}))
+
+  await render(<App />, {route, user})
+
+  const removeFromListButton = screen.getByRole('button', {
+    name: /remove from list/i,
+  })
+  userEvent.click(removeFromListButton)
+  expect(removeFromListButton).toBeDisabled()
+
+  await waitForLoadingToFinish()
+
+  expect(screen.getByRole('button', {name: /add to list/i})).toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', {name: /remove from list/i}),
+  ).not.toBeInTheDocument()
 })
 
 // Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -220,47 +244,57 @@ test('can create a list item for the book', async () => {
 // Abstract Functionality (Extra) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // There are several things in each of these tests that I think could be shared between them. Let's start with this
-// waitForElementToBeRemoved business. We're doing this a couple of times. We could abstract this away as a very 
-// simple function that simply waitForLoadingToFinish(), and that can be an arrow function that just simply 
+// waitForElementToBeRemoved business. We're doing this a couple of times. We could abstract this away as a very
+// simple function that simply waitForLoadingToFinish(), and that can be an arrow function that just simply
 // returns a call to that.
 
-// Let's review here, all that we did was take two bits of code that were pretty common between both of our tests, 
-// and abstracted them out into separate functions, so that we can reduce the amount of duplication, and 
+// Let's review here, all that we did was take two bits of code that were pretty common between both of our tests,
+// and abstracted them out into separate functions, so that we can reduce the amount of duplication, and
 // potentially use this in other integration tests throughout our code base.
 
 // Custom Render Function (Extra) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// There's still a fair amount of duplication here, I can see all of that, including the wait for loading to finish 
-// as well. Why don't we put all of this in a separate function too, so I'm going to make a function and this one, 
-// I'm going to call it render. I'm going to change the name of the render that I pull from React Testing Library, 
+// There's still a fair amount of duplication here, I can see all of that, including the wait for loading to finish
+// as well. Why don't we put all of this in a separate function too, so I'm going to make a function and this one,
+// I'm going to call it render. I'm going to change the name of the render that I pull from React Testing Library,
 // and I'll call that as RTL render.
 
-// Let's review what we did. All that we did is make this render function. This render function simulates the render 
-// from React Testing Library, except it is async, because in here we can create a user for you automatically, and 
+// Let's review what we did. All that we did is make this render function. This render function simulates the render
+// from React Testing Library, except it is async, because in here we can create a user for you automatically, and
 // we wait for loading to finish automatically for you.
 
-// You can proceed from your test right after calling render right here. You don't have to worry about waiting for 
+// You can proceed from your test right after calling render right here. You don't have to worry about waiting for
 // loading to finish it up at all. We also navigate to a specific route.
 
-// You can provide a route or we navigate to the default route. Then we allow you to specify your own user if you 
-// want to or automatically log in as a user. Then we can return that user to you, so you can use its ID or anything 
+// You can provide a route or we navigate to the default route. Then we allow you to specify your own user if you
+// want to or automatically log in as a user. Then we can return that user to you, so you can use its ID or anything
 // else that you need for the test that you're going to be writing.
-
 
 // Global Utils (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// There's plenty of stuff in here that would be useful throughout our codebase, especially this cleanup. Every 
-// single test file should probably make sure we clean up all of this stuff, so we don't have to worry about putting 
+// There's plenty of stuff in here that would be useful throughout our codebase, especially this cleanup. Every
+// single test file should probably make sure we clean up all of this stuff, so we don't have to worry about putting
 // that in all of our test files.
 
-// Great, things are looking pretty good. Let's go ahead and review what we did. We just removed a ton of code. We 
-// took all of the generic utilities that we've built inside of this file, and we moved them into this 
+// Great, things are looking pretty good. Let's go ahead and review what we did. We just removed a ton of code. We
+// took all of the generic utilities that we've built inside of this file, and we moved them into this
 // app-test-utils module.
 
-// Then reexported all of those, we reexported userEvent, and reexported everything from Testing Library React. We 
+// Then reexported all of those, we reexported userEvent, and reexported everything from Testing Library React. We
 // only have one file that we need to worry about importing our utilities from.
 
-// We also took the generically useful cleanup that we had in that file and stuck it in here so that every test 
-// could benefit from the cleanup. We never have to worry about the user being logged in between one test to the 
-// next, or any of the in-memory databases that we have, and data that was set up in one test and now impacting 
+// We also took the generically useful cleanup that we had in that file and stuck it in here so that every test
+// could benefit from the cleanup. We never have to worry about the user being logged in between one test to the
+// next, or any of the in-memory databases that we have, and data that was set up in one test and now impacting
 // another, which should help in the stability of our test.
+
+// Can Remove List Item for Book (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Let's review. First, we create our own user, our book, and a listItem. We needed to create our own user and our 
+// own book, so that we could build a listItem that's associated to that user and that book, and with that, 
+// we render to the route based on that booksID, as well as the user that we are currently logged in with so that we 
+// don't log in as a different user.
+
+// Then we find the Remove from list button. We click on that, verify it's disabled. We wait for the loading state 
+// to go away. Then we verify that Add to list is now in the document, and the Remove from list button that we 
+// clicked on is no longer in the document.
