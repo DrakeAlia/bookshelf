@@ -99,6 +99,42 @@ test('can remove a list item for the book', async () => {
   ).not.toBeInTheDocument()
 })
 
+test('can mark a list item as read', async () => {
+  const user = await loginAsUser()
+  const book = await booksDB.create(buildBook())
+  const listItem = await listItemsDB.create(
+    buildListItem({
+      owner: user,
+      book,
+      finishDate: null,
+    }),
+  )
+  const route = `/book/${book.id}`
+
+  await render(<App />, {route, user})
+
+  const markAsReadButton = screen.getByRole('button', {
+    name: /mark as read/i,
+  })
+  userEvent.click(markAsReadButton)
+  expect(markAsReadButton).toBeDisabled()
+
+  await waitForLoadingToFinish()
+
+  expect(
+    screen.getByRole('button', {name: /mark as unread/i}),
+  ).toBeInTheDocument()
+
+  const startAndFinishDateNode = screen.getByLabelText(/start and finish date/i)
+  expect(startAndFinishDateNode).toHaveTextContent(
+    `${formatDate(listItem.startDate)} — ${formatDate(Date.now())}`,
+  )
+
+  expect(
+    screen.queryByRole('button', {name: /mark as read/i}),
+  ).not.toBeInTheDocument()
+})
+
 // Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Let's get started by making this an async test. I know that this will be async, and pretty much all integration
@@ -290,11 +326,26 @@ test('can remove a list item for the book', async () => {
 
 // Can Remove List Item for Book (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Let's review. First, we create our own user, our book, and a listItem. We needed to create our own user and our 
-// own book, so that we could build a listItem that's associated to that user and that book, and with that, 
-// we render to the route based on that booksID, as well as the user that we are currently logged in with so that we 
+// Let's review. First, we create our own user, our book, and a listItem. We needed to create our own user and our
+// own book, so that we could build a listItem that's associated to that user and that book, and with that,
+// we render to the route based on that booksID, as well as the user that we are currently logged in with so that we
 // don't log in as a different user.
 
-// Then we find the Remove from list button. We click on that, verify it's disabled. We wait for the loading state 
-// to go away. Then we verify that Add to list is now in the document, and the Remove from list button that we 
+// Then we find the Remove from list button. We click on that, verify it's disabled. We wait for the loading state
+// to go away. Then we verify that Add to list is now in the document, and the Remove from list button that we
 // clicked on is no longer in the document.
+
+// Can Mark a List Item as Read (Extra)
+
+// For this next one, let's copy the removeFromListItem because we still want to create our own listItem, and for this test we're going to 
+// say, "Can mark a list item as read." We have a listItem already, and instead of clicking on the removeFromList, we're going to click on 
+// markAsRead. This will be our markAsRead button.
+
+// Things are looking super awesome. Let's get rid of that screen debug and review what we've got. Here, we still wanted to create our own 
+// user and book so that we could create a listItem that's associated to the user and book.
+
+// We also specified a finishDate so that this listItem would not be marked as finished so that we could then say markAsRead and click on 
+// that. Wait for the loading state to finish when we're finished clicking on that, and then verify that the markAsUnread button shows up 
+// now.
+
+// We also have the startAndFinishDate node with the properly formatted dates. We have markAsRead is no longer in the document.
