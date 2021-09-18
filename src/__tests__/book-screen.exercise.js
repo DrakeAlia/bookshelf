@@ -48,11 +48,22 @@ afterEach(async () => {
   ])
 })
 
-test('renders all the book information', async () => {
-  const user = buildUser()
+async function loginAsUser(userProperties) {
+  const user = buildUser(userProperties)
   await usersDB.create(user)
   const authUser = await usersDB.authenticate(user)
   window.localStorage.setItem(auth.localStorageKey, authUser.token)
+  return authUser
+}
+
+const waitForLoadingToFinish = () =>
+  waitForElementToBeRemoved(() => [
+    ...screen.queryAllByLabelText(/loading/i),
+    ...screen.queryAllByText(/loading/i),
+  ])
+
+test('renders all the book information', async () => {
+  await loginAsUser()
 
   const book = await booksDB.create(buildBook())
   const route = `/book/${book.id}`
@@ -60,10 +71,7 @@ test('renders all the book information', async () => {
 
   render(<App />, {wrapper: AppProviders})
 
-  await waitForElementToBeRemoved(() => [
-    ...screen.queryAllByLabelText(/loading/i),
-    ...screen.queryAllByText(/loading/i),
-  ])
+  await waitForLoadingToFinish()
 
   expect(screen.getByRole('heading', {name: book.title})).toBeInTheDocument()
   expect(screen.getByText(book.title)).toBeInTheDocument()
@@ -93,10 +101,7 @@ test('renders all the book information', async () => {
 })
 
 test('can create a list item for the book', async () => {
-  const user = buildUser()
-  await usersDB.create(user)
-  const authUser = await usersDB.authenticate(user)
-  window.localStorage.setItem(auth.localStorageKey, authUser.token)
+  await loginAsUser()
 
   const book = await booksDB.create(buildBook())
   const route = `/book/${book.id}`
@@ -104,19 +109,13 @@ test('can create a list item for the book', async () => {
 
   render(<App />, {wrapper: AppProviders})
 
-  await waitForElementToBeRemoved(() => [
-    ...screen.queryAllByLabelText(/loading/i),
-    ...screen.queryAllByText(/loading/i),
-  ])
+  await waitForLoadingToFinish()
 
   const addToListButton = screen.getByRole('button', {name: /add to list/i})
   userEvent.click(addToListButton)
   expect(addToListButton).toBeDisabled()
 
-  await waitForElementToBeRemoved(() => [
-    ...screen.queryAllByLabelText(/loading/i),
-    ...screen.queryAllByText(/loading/i),
-  ])
+  await waitForLoadingToFinish()
 
   expect(
     screen.getByRole('button', {name: /mark as read/i}),
@@ -267,15 +266,25 @@ test('can create a list item for the book', async () => {
 
 // Write Second Integration Test (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Now that we've been able to test it that we can load this in and all the data shows up, let's handle the use case 
+// Now that we've been able to test it that we can load this in and all the data shows up, let's handle the use case
 // for clicking on the addToList button.
 
-// Let's review what we've got here. For the first part of this test, we need all the same things that we had in our 
+// Let's review what we've got here. For the first part of this test, we need all the same things that we had in our
 // last test. We need a user, we need a book, and we need to wait for the loading state to go away.
 
-// Then, we can click on the addToList button. We verified that it's disabled when we click on it. Then we wait for 
-// the loading state to go away again. Then we can verify that markAsRead shows up, Remove from list shows up, 
+// Then, we can click on the addToList button. We verified that it's disabled when we click on it. Then we wait for
+// the loading state to go away again. Then we can verify that markAsRead shows up, Remove from list shows up,
 // the Notes show up, and the startDate is correct.
 
-// Then we verify that addToList isn't there, markAsUnread shouldn't be there, and the star ratings shouldn't be 
+// Then we verify that addToList isn't there, markAsUnread shouldn't be there, and the star ratings shouldn't be
 // there either.
+
+// Abstract Functionality (Extra) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// There are several things in each of these tests that I think 
+// could be shared between them. Let's start with this 
+// waitForElementToBeRemoved business. We're doing this a couple of 
+// times. We could abstract this away as a very simple function that simply waitForLoadingToFinish(), and that can be an arrow function that just simply returns a call to that.
+
+// Let's review here, all that we did was take two bits of code that were pretty common between both of our tests, and abstracted them out into separate functions, so that we can reduce the amount of duplication, and potentially use this in other integration tests throughout our code base.
+

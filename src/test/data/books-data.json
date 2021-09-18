@@ -655,5 +655,14 @@
     "pageCount": 242,
     "publisher": "O'Reilly Media",
     "synopsis": "Get a practical introduction to React Native, the JavaScript framework for writing and deploying fully featured mobile apps that render natively. The second edition of this hands-on guide shows you how to build applications that target iOS, Android, and other mobile platforms instead of browsers—apps that can access platform features such as the camera, user location, and local storage."
+  },
+  {
+    "title": "Meika's Cult Interactive",
+    "author": "Meika Peaka",
+    "coverImageUrl": "https://media-exp1.licdn.com/dms/image/C5635AQFAEJ0vSeC0eQ/profile-framedphoto-shrink_800_800/0/1599259379031?e=1632009600&v=beta&t=WNQrKhzUzACdslQQRSK0KfSj5o0RmbSvE2mIZ8pxCBk",
+    "id": "987654321",
+    "pageCount": "696969",
+    "publisher": "Jewish Mob",
+    "synopsis": "a lost little boy is on his path to his own destiny. He owns mutiple cats and has relationship troubles all through out his stay in college. He has trouble keeping friends and being on time to hang out appointments. Pray for Josh."
   }
 ]
