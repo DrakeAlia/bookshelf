@@ -13,6 +13,7 @@ import {App} from 'app'
 import * as booksDB from 'test/data/books'
 import {formatDate} from 'utils/misc'
 import * as listItemsDB from 'test/data/list-items'
+import faker from 'faker'
 
 test('renders all the book information', async () => {
   const book = await booksDB.create(buildBook())
@@ -133,6 +134,29 @@ test('can mark a list item as read', async () => {
   expect(
     screen.queryByRole('button', {name: /mark as read/i}),
   ).not.toBeInTheDocument()
+})
+
+test('can edit a note', async () => {
+  const user = await loginAsUser()
+  const book = await booksDB.create(buildBook())
+  const listItem = await listItemsDB.create(buildListItem({owner: user, book}))
+  const route = `/book/${book.id}`
+
+  await render(<App />, {route, user})
+
+  const newNotes = faker.lorem.words()
+  const notesTextarea = screen.getByRole('textbox', {name: /notes/i})
+
+  userEvent.clear(notesTextarea)
+  userEvent.type(notesTextarea, newNotes)
+
+  await screen.findByLabelText(/loading/i)
+
+  expect(notesTextarea).toHaveValue(newNotes)
+
+  expect(await listItemsDB.read(listItem.id)).toMatchObject({
+    notes: newNotes,
+  })
 })
 
 // Render the Application with AppProviders ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -337,15 +361,29 @@ test('can mark a list item as read', async () => {
 
 // Can Mark a List Item as Read (Extra)
 
-// For this next one, let's copy the removeFromListItem because we still want to create our own listItem, and for this test we're going to 
-// say, "Can mark a list item as read." We have a listItem already, and instead of clicking on the removeFromList, we're going to click on 
+// For this next one, let's copy the removeFromListItem because we still want to create our own listItem, and for this test we're going to
+// say, "Can mark a list item as read." We have a listItem already, and instead of clicking on the removeFromList, we're going to click on
 // markAsRead. This will be our markAsRead button.
 
-// Things are looking super awesome. Let's get rid of that screen debug and review what we've got. Here, we still wanted to create our own 
+// Things are looking super awesome. Let's get rid of that screen debug and review what we've got. Here, we still wanted to create our own
 // user and book so that we could create a listItem that's associated to the user and book.
 
-// We also specified a finishDate so that this listItem would not be marked as finished so that we could then say markAsRead and click on 
-// that. Wait for the loading state to finish when we're finished clicking on that, and then verify that the markAsUnread button shows up 
+// We also specified a finishDate so that this listItem would not be marked as finished so that we could then say markAsRead and click on
+// that. Wait for the loading state to finish when we're finished clicking on that, and then verify that the markAsUnread button shows up
 // now.
 
 // We also have the startAndFinishDate node with the properly formatted dates. We have markAsRead is no longer in the document.
+
+// Can Edit a Note (Extra)
+
+// This one's going to be a little bit trickier. For this one, we're going to say can edit a note. The reason 
+// this is trickier is because editing a note has a debounce involved. The user has to wait for 300 milliseconds 
+// after they finish typing before we send the update request. That way, we're not sending an update requests for 
+// every character they type.
+
+// Let's go ahead and review what we've got here now. We wanted to make sure we can edit a note. We needed a user 
+// and a book, so we can create a ListItem. We render that with that user on that route.
+
+// Then, we create some random notes. We grab our notes text area. We query the text area and type those new 
+// notes in there. We wait for the loading indicator to show up. By that time, our notes text area has been 
+// updated, and the ListItem database has that ListItem actually updated.
