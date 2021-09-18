@@ -376,14 +376,14 @@ test('can edit a note', async () => {
 
 // Can Edit a Note (Extra)
 
-// This one's going to be a little bit trickier. For this one, we're going to say can edit a note. The reason 
-// this is trickier is because editing a note has a debounce involved. The user has to wait for 300 milliseconds 
-// after they finish typing before we send the update request. That way, we're not sending an update requests for 
+// This one's going to be a little bit trickier. For this one, we're going to say can edit a note. The reason
+// this is trickier is because editing a note has a debounce involved. The user has to wait for 300 milliseconds
+// after they finish typing before we send the update request. That way, we're not sending an update requests for
 // every character they type.
 
-// Let's go ahead and review what we've got here now. We wanted to make sure we can edit a note. We needed a user 
+// Let's go ahead and review what we've got here now. We wanted to make sure we can edit a note. We needed a user
 // and a book, so we can create a ListItem. We render that with that user on that route.
 
-// Then, we create some random notes. We grab our notes text area. We query the text area and type those new 
-// notes in there. We wait for the loading indicator to show up. By that time, our notes text area has been 
+// Then, we create some random notes. We grab our notes text area. We query the text area and type those new
+// notes in there. We wait for the loading indicator to show up. By that time, our notes text area has been
 // updated, and the ListItem database has that ListItem actually updated.
