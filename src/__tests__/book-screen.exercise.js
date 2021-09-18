@@ -1,85 +1,16 @@
-// 🐨 here are the things you're going to need for this test: (X)
+// 📜 https://developer.mozilla.org/en-US/docs/Web/API/History/pushState
+// 📜 https://testing-library.com/docs/dom-testing-library/api-async#waitfor
 import * as React from 'react'
 import {
-  render as rtlRender,
+  render,
   screen,
-  waitForElementToBeRemoved,
-} from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import {queryCache} from 'react-query'
-import {buildUser, buildBook} from 'test/generate'
-import * as auth from 'auth-provider'
-import {AppProviders} from 'context'
+  waitForLoadingToFinish,
+  userEvent,
+} from 'test/app-test-utils'
+import {buildBook} from 'test/generate'
 import {App} from 'app'
 import * as booksDB from 'test/data/books'
-import * as usersDB from 'test/data/users'
-import * as listItemsDB from 'test/data/list-items'
 import {formatDate} from 'utils/misc'
-
-// 🐨 assert the book's info is in the document (X)
-
-// 🐨 reassign window.fetch to another function and handle the following requests:
-// - url ends with `/bootstrap`: respond with {user, listItems: []} (X)
-// - url ends with `/list-items`: respond with {listItems: []} (X)
-// - url ends with `/books/${book.id}`: respond with {book} (X)
-// 💰 window.fetch = async (url, config) => { /* handle stuff here*/ }
-// 💰 return Promise.resolve({ok: true, json: async () => ({ /* response data here */ })})
-
-// 🐨 "authenticate" the client by setting the auth.localStorageKey in localStorage to some string value
-// (can be anything for now) (X)
-
-// 🐨 create a user using `buildUser` (X)
-// 🐨 create a book use `buildBook` (X)
-// 🐨 update the URL to `/book/${book.id}` (X)
-//   💰 window.history.pushState({}, 'page title', route)
-//   📜 https://developer.mozilla.org/en-US/docs/Web/API/History/pushState
-
-// 🐨 use waitFor to wait for the queryCache to stop fetching and the loading
-// indicators to go away (X)
-// 📜 https://testing-library.com/docs/dom-testing-library/api-async#waitfor
-// 💰 if (queryCache.isFetching or there are loading indicators) then throw an error...
-// 🐨 render the App component and set the wrapper to the AppProviders (X)
-// (that way, all the same providers we have in the app will be available in our tests)
-
-// 🐨 after each test, clear the queryCache and auth.logout (X)
-afterEach(async () => {
-  queryCache.clear()
-  await Promise.all([
-    auth.logout(),
-    usersDB.reset(),
-    booksDB.reset(),
-    listItemsDB.reset(),
-  ])
-})
-
-async function render(ui, {route = '/list', user, ...renderOptions} = {}) {
-  user = typeof user === 'undefined' ? await loginAsUser() : user
-
-  window.history.pushState({}, 'Test page', route)
-
-  const returnValue = {
-    ...rtlRender(ui, {wrapper: AppProviders, ...renderOptions}),
-    user,
-  }
-
-  await waitForLoadingToFinish()
-
-  return returnValue
-}
-
-async function loginAsUser(userProperties) {
-  const user = buildUser(userProperties)
-  await usersDB.create(user)
-  const authUser = await usersDB.authenticate(user)
-  window.localStorage.setItem(auth.localStorageKey, authUser.token)
-  return authUser
-}
-
-const waitForLoadingToFinish = () =>
-  waitForElementToBeRemoved(() => [
-    ...screen.queryAllByLabelText(/loading/i),
-    ...screen.queryAllByText(/loading/i),
-  ])
 
 test('renders all the book information', async () => {
   const book = await booksDB.create(buildBook())
@@ -289,26 +220,47 @@ test('can create a list item for the book', async () => {
 // Abstract Functionality (Extra) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // There are several things in each of these tests that I think could be shared between them. Let's start with this
-// waitForElementToBeRemoved business. We're doing this a couple of times. We could abstract this away as a very simple function that
-// simply waitForLoadingToFinish(), and that can be an arrow function that just simply returns a call to that.
+// waitForElementToBeRemoved business. We're doing this a couple of times. We could abstract this away as a very 
+// simple function that simply waitForLoadingToFinish(), and that can be an arrow function that just simply 
+// returns a call to that.
 
-// Let's review here, all that we did was take two bits of code that were pretty common between both of our tests, and abstracted them out
-// into separate functions, so that we can reduce the amount of duplication, and potentially use this in other integration tests throughout
-// our code base.
+// Let's review here, all that we did was take two bits of code that were pretty common between both of our tests, 
+// and abstracted them out into separate functions, so that we can reduce the amount of duplication, and 
+// potentially use this in other integration tests throughout our code base.
 
-// Custom Render Function (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Custom Render Function (Extra) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// There's still a fair amount of duplication here, I can see all of that, including the wait for loading to finish as well. Why don't we
-// put all of this in a separate function too, so I'm going to make a function and this one, I'm going to call it render. I'm going to
-// change the name of the render that I pull from React Testing Library, and I'll call that as RTL render.
+// There's still a fair amount of duplication here, I can see all of that, including the wait for loading to finish 
+// as well. Why don't we put all of this in a separate function too, so I'm going to make a function and this one, 
+// I'm going to call it render. I'm going to change the name of the render that I pull from React Testing Library, 
+// and I'll call that as RTL render.
 
-// Let's review what we did. All that we did is make this render function. This render function simulates the render from React Testing
-// Library, except it is async, because in here we can create a user for you automatically, and we wait for loading to finish automatically
-// for you.
+// Let's review what we did. All that we did is make this render function. This render function simulates the render 
+// from React Testing Library, except it is async, because in here we can create a user for you automatically, and 
+// we wait for loading to finish automatically for you.
 
-// You can proceed from your test right after calling render right here. You don't have to worry about waiting for loading to finish it up
-// at all. We also navigate to a specific route.
+// You can proceed from your test right after calling render right here. You don't have to worry about waiting for 
+// loading to finish it up at all. We also navigate to a specific route.
 
-// You can provide a route or we navigate to the default route. Then we allow you to specify your own user if you want to or automatically
-// log in as a user. Then we can return that user to you, so you can use its ID or anything else that you need for the test that you're
-// going to be writing.
+// You can provide a route or we navigate to the default route. Then we allow you to specify your own user if you 
+// want to or automatically log in as a user. Then we can return that user to you, so you can use its ID or anything 
+// else that you need for the test that you're going to be writing.
+
+
+// Global Utils (Extra) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// There's plenty of stuff in here that would be useful throughout our codebase, especially this cleanup. Every 
+// single test file should probably make sure we clean up all of this stuff, so we don't have to worry about putting 
+// that in all of our test files.
+
+// Great, things are looking pretty good. Let's go ahead and review what we did. We just removed a ton of code. We 
+// took all of the generic utilities that we've built inside of this file, and we moved them into this 
+// app-test-utils module.
+
+// Then reexported all of those, we reexported userEvent, and reexported everything from Testing Library React. We 
+// only have one file that we need to worry about importing our utilities from.
+
+// We also took the generically useful cleanup that we had in that file and stuck it in here so that every test 
+// could benefit from the cleanup. We never have to worry about the user being logged in between one test to the 
+// next, or any of the in-memory databases that we have, and data that was set up in one test and now impacting 
+// another, which should help in the stability of our test.
