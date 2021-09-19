@@ -8,12 +8,15 @@ import {
   userEvent,
   loginAsUser,
 } from 'test/app-test-utils'
+import {server, rest} from 'test/server'
 import {buildBook, buildListItem} from 'test/generate'
 import {App} from 'app'
 import * as booksDB from 'test/data/books'
 import {formatDate} from 'utils/misc'
 import * as listItemsDB from 'test/data/list-items'
 import faker from 'faker'
+
+const apiURL = process.env.REACT_APP_API_URL
 
 async function renderBookScreen({user, book, listItem} = {}) {
   if (user === undefined) {
@@ -153,6 +156,52 @@ test('can edit a note', async () => {
   expect(notesTextarea).toHaveValue(newNotes)
 
   expect(await listItemsDB.read(listItem.id)).toMatchObject({
+    notes: newNotes,
+  })
+})
+
+describe('console errors', () => {
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterAll(() => {
+    console.error.mockRestore()
+  })
+})
+
+test('shows an error message when the book fails to load', async () => {
+  const book = {id: 'BAD_ID'}
+  await renderBookScreen({listItem: null, book})
+
+  expect((await screen.findByRole('alert')).textContent).toMatchInlineSnapshot(
+    `"There was an error: Book not found"`,
+  )
+})
+
+test('note update failures are displayed', async () => {
+  jest.useFakeTimers()
+  const {listItem} = await renderBookScreen()
+
+  const newNotes = faker.lorem.words()
+  const notesTextarea = screen.getByRole('textbox', {name: /notes/i})
+
+  server.use(
+    rest.put(`${apiURL}/list-items/:listItemId`, async (req, res, ctx) => {
+      return res(ctx.status(400), ctx.json({}))
+    }),
+  )
+  userEvent.clear(notesTextarea)
+  userEvent.type(notesTextarea, newNotes)
+
+  await screen.findByLabelText(/loading/i)
+
+  await waitForLoadingToFinish()
+
+  expect(screen.getByRole('alert').textContent).toMatchInlineSnapshot(
+    `"There was an error: "`,
+  )
+  expect(await listItemsDB.read(listItem.id)).not.toMatchObject({
     notes: newNotes,
   })
 })
@@ -388,31 +437,69 @@ test('can edit a note', async () => {
 
 // Create Component-Specific Utility (Extra)
 
-// Remember when we made this render utility, and it was awesome because we were able to 
-// share a bunch of common stuff between our tests? As I've been writing this, I've been 
-// noticing that we have some more common stuff between most of these tests that might be 
+// Remember when we made this render utility, and it was awesome because we were able to
+// share a bunch of common stuff between our tests? As I've been writing this, I've been
+// noticing that we have some more common stuff between most of these tests that might be
 // nice to abstract away into an abstraction within this test file.
 
-// In review, we identified some similarities between the tests that we had in this file 
-// and made an in-file utility that we could use across all of our tests. We have this 
+// In review, we identified some similarities between the tests that we had in this file
+// and made an in-file utility that we could use across all of our tests. We have this
 // renderBookScreen that will accept user, book, and listItem.
 
-// If those are provided, that's great. If they're not, then we'll create them ourselves 
-// and then we'll forward them along to the render function that is a generic render 
+// If those are provided, that's great. If they're not, then we'll create them ourselves
+// and then we'll forward them along to the render function that is a generic render
 // function for all of the tests in our app.
 
-// It handles ensuring that you're logged in as a user, and ensuring that you're on the 
-// right page, and that your component is wrapped in all of the providers that it's going to 
+// It handles ensuring that you're logged in as a user, and ensuring that you're on the
+// right page, and that your component is wrapped in all of the providers that it's going to
 // be wrapped in, when you ship this component to production.
 
-// With this composition of utilities, we have some tests that are pretty easy to 
-// understand. We say, "Hey, I'm going to render a book screen. This book screen has a 
+// With this composition of utilities, we have some tests that are pretty easy to
+// understand. We say, "Hey, I'm going to render a book screen. This book screen has a
 // book that doesn't have a list item, and this is what that book screen should look like."
 
-// Then, for this one, "Hey, I am rendering a book screen as well. This one doesn't have a 
-// list item. This is what it should look like and how it should behave for a book that 
+// Then, for this one, "Hey, I am rendering a book screen as well. This one doesn't have a
+// list item. This is what it should look like and how it should behave for a book that
 // doesn't have a list item."
 
-// Then for this one, it's a regular book screen. It has a list item, pretty normal 
-// situation. We're going to remove that list item. Here we're going to mark it as read 
+// Then for this one, it's a regular book screen. It has a list item, pretty normal
+// situation. We're going to remove that list item. Here we're going to mark it as read
 // and so on.
+
+// Show Error when Load Fails (Extra)
+
+// Sometimes, errors happen, and we want to make sure that our application functions
+// properly when they do. I'm going to add a test that shows an error message when the
+// book fails to load. This will be an async test because we will await
+// renderBookScreen, except that we want to provide a listItem that is null, so no
+// listItem for this book.
+
+// We're using this renderBookScreen utility that we created in this file. We want to have
+// a book that doesn't have a listItem because it doesn't even exist in the database,
+// so we made a fake book that just has an id of badID. This pretty much just allows us
+// to render to the route of book/badID so then we can determine what happens when
+// I render the app at that route.
+
+// We can verify when happens with this assertion right here. Things are looking good for
+// us. Now we have to deal with this error message.
+
+// Scope Hooks to Describe Block (Extra)
+
+// What do you do when you've got a console.error here that is part of a test that you are
+// expecting that error to happen? What we're going to do is I'll have a beforeAll, where
+// I'll say jest.spyOn( console, 'error'), and then mock that implementation to do nothing.
+
+// Often, people will use describe blocks to group different tests together in a single
+// file. I would rather just make two different test files and they can be run in parallel
+// that way too, which is even better. Sometimes, if I want to scope down a couple of hooks
+// to a specific set of tests, then I will use a describe block just like this.
+
+// If we save this now, we're not going to run into any errors, and if one of these other
+// tests triggers an error...We'll do a console.error inaudible right here. Then we are
+// going to see that error message, and we can deal with it in the way that we need to.
+
+// We're in a good place here with our console errors by nesting these hooks for the
+// setup of mocking that implementation and the cleanup of mocking that implementation
+// within this describe block, so they only apply to this one test.
+
+//
