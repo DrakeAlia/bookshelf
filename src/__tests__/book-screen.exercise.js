@@ -15,10 +15,27 @@ import {formatDate} from 'utils/misc'
 import * as listItemsDB from 'test/data/list-items'
 import faker from 'faker'
 
-test('renders all the book information', async () => {
-  const book = await booksDB.create(buildBook())
+async function renderBookScreen({user, book, listItem} = {}) {
+  if (user === undefined) {
+    user = await loginAsUser()
+  }
+
+  if (book === undefined) {
+    book = await booksDB.create(buildBook())
+  }
+
+  if (listItem === undefined) {
+    listItem = await listItemsDB.create(buildListItem({owner: user, book}))
+  }
   const route = `/book/${book.id}`
-  await render(<App />, {route})
+
+  const utils = await render(<App />, {route, user})
+
+  return {...utils, user, book, listItem}
+}
+
+test('renders all the book information', async () => {
+  const {book} = await renderBookScreen({listItem: null})
 
   expect(screen.getByRole('heading', {name: book.title})).toBeInTheDocument()
   expect(screen.getByText(book.title)).toBeInTheDocument()
@@ -48,9 +65,7 @@ test('renders all the book information', async () => {
 })
 
 test('can create a list item for the book', async () => {
-  const book = await booksDB.create(buildBook())
-  const route = `/book/${book.id}`
-  await render(<App />, {route})
+  await renderBookScreen({listItem: null})
 
   const addToListButton = screen.getByRole('button', {name: /add to list/i})
   userEvent.click(addToListButton)
@@ -79,12 +94,7 @@ test('can create a list item for the book', async () => {
 })
 
 test('can remove a list item for the book', async () => {
-  const user = await loginAsUser()
-  const book = await booksDB.create(buildBook())
-  const route = `/book/${book.id}`
-  await listItemsDB.create(buildListItem({owner: user, book}))
-
-  await render(<App />, {route, user})
+  await renderBookScreen()
 
   const removeFromListButton = screen.getByRole('button', {
     name: /remove from list/i,
@@ -101,18 +111,8 @@ test('can remove a list item for the book', async () => {
 })
 
 test('can mark a list item as read', async () => {
-  const user = await loginAsUser()
-  const book = await booksDB.create(buildBook())
-  const listItem = await listItemsDB.create(
-    buildListItem({
-      owner: user,
-      book,
-      finishDate: null,
-    }),
-  )
-  const route = `/book/${book.id}`
-
-  await render(<App />, {route, user})
+  const {listItem} = await renderBookScreen()
+  await listItemsDB.update(listItem.id, {finishDate: null})
 
   const markAsReadButton = screen.getByRole('button', {
     name: /mark as read/i,
@@ -138,12 +138,7 @@ test('can mark a list item as read', async () => {
 
 test('can edit a note', async () => {
   jest.useFakeTimers()
-  const user = await loginAsUser()
-  const book = await booksDB.create(buildBook())
-  const listItem = await listItemsDB.create(buildListItem({owner: user, book}))
-  const route = `/book/${book.id}`
-
-  await render(<App />, {route, user})
+  const {listItem} = await renderBookScreen()
 
   const newNotes = faker.lorem.words()
   const notesTextarea = screen.getByRole('textbox', {name: /notes/i})
@@ -390,3 +385,34 @@ test('can edit a note', async () => {
 // Then, we create some random notes. We grab our notes text area. We query the text area and type those new
 // notes in there. We wait for the loading indicator to show up. By that time, our notes text area has been
 // updated, and the ListItem database has that ListItem actually updated.
+
+// Create Component-Specific Utility (Extra)
+
+// Remember when we made this render utility, and it was awesome because we were able to 
+// share a bunch of common stuff between our tests? As I've been writing this, I've been 
+// noticing that we have some more common stuff between most of these tests that might be 
+// nice to abstract away into an abstraction within this test file.
+
+// In review, we identified some similarities between the tests that we had in this file 
+// and made an in-file utility that we could use across all of our tests. We have this 
+// renderBookScreen that will accept user, book, and listItem.
+
+// If those are provided, that's great. If they're not, then we'll create them ourselves 
+// and then we'll forward them along to the render function that is a generic render 
+// function for all of the tests in our app.
+
+// It handles ensuring that you're logged in as a user, and ensuring that you're on the 
+// right page, and that your component is wrapped in all of the providers that it's going to 
+// be wrapped in, when you ship this component to production.
+
+// With this composition of utilities, we have some tests that are pretty easy to 
+// understand. We say, "Hey, I'm going to render a book screen. This book screen has a 
+// book that doesn't have a list item, and this is what that book screen should look like."
+
+// Then, for this one, "Hey, I am rendering a book screen as well. This one doesn't have a 
+// list item. This is what it should look like and how it should behave for a book that 
+// doesn't have a list item."
+
+// Then for this one, it's a regular book screen. It has a list item, pretty normal 
+// situation. We're going to remove that list item. Here we're going to mark it as read 
+// and so on.

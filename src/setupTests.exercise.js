@@ -65,3 +65,4 @@ afterEach(async () => {
 // to work out, and voilà, our test continued to pass, and we don't have to worry about 
 // setting that interval or rendering that Profiler component.
 
+// 
