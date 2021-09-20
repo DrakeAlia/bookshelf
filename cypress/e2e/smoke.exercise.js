@@ -21,6 +21,27 @@ describe('smoke', () => {
       cy.findByLabelText(/password/i).type(user.password)
       cy.findByRole('button', {name: /register/i}).click()
     })
+
+    cy.findByRole('navigation').within(() => {
+      cy.findByRole('link', {name: /discover/i}).click()
+    })
+
+    cy.findByRole('main').within(() => {
+      cy.findByRole('searchbox', {name: /search/i}).type('Voice of war{enter}')
+      cy.findByRole('listitem', {name: /voice of war/i}).within(() => {
+        cy.findByRole('button', {name: /add to list/i}).click()
+      })
+    })
+
+    cy.findByRole('navigation').within(() => {
+      cy.findByRole('link', {name: /reading list/i}).click()
+    })
+
+    cy.findByRole('main').within(() => {
+      cy.findAllByRole('listitem').should('have.length', 1)
+      cy.findByRole('link', {name: /voice of war/i}).click()
+    })
+
     //
     // 🐨 within the "navigation", find the link named "discover" and click it
     //
@@ -81,3 +102,26 @@ describe('smoke', () => {
 // Then, we fill in the registration form within the dialog with that user's user name and
 // password. Finally, click on the register button. Ultimately, that takes us to the app in
 // our logged-in state.
+
+// Find and Add a Book to Reading
+
+// Now that we've successfully logged in, I want to navigate to the Discover page. We can 
+// click on Discover and navigate around here out of book and do all the rest of the stuff 
+// we want to do here.
+
+// Once we did all this registration, then we clicked on the Discover link within the 
+// navigation and that's useful because that's actually what the user does. 
+// They don't just look for text all over the screen and find links that say discover. 
+// They're looking at the navigation area.
+
+// This is why it's important for our applications to be accessible, so we can test it like 
+// this, just like a regular user would use it, as well as a user with a screen reader.
+
+// That's why we're typically putting everything inside of within, like we're doing here, 
+// because we're trying to behave like the user. Then, within our main content area, we're 
+// going to say, "Hey, let's find that search box and type in Voice of War," and then 
+// let's find the listItem that is named Voice of War, so that has the title of Voice of War.
+
+// Then we'll say findByRole('button') for Add to List, we'll click on that. Then, we'll 
+// navigate over to the Reading List and make sure that only one item shows up, the one we 
+// just added, and that item happens to be Voice of War, and we'll click on it.
