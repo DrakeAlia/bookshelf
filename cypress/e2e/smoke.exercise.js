@@ -1,14 +1,11 @@
 // 🐨 visit '/' (📜 https://docs.cypress.io/api/commands/visit.html)
 // 📜 https://docs.cypress.io/api/commands/within.html#Syntax
 // 📜 https://docs.cypress.io/api/commands/type.html#Syntax
+// 💰 https://docs.cypress.io/api/commands/should.html (.should('have.length', 1))
+// 📜 https://docs.cypress.io/api/commands/click.html#Arguments
 // 🐨 you'll want a fake user to register as: (X)
 import {buildUser} from '../support/generate'
 
-// 🐨 create a fake user (X)
-// 🐨 find the button named "register" and click it (X)
-// 🐨 within the "dialog" find the username and password fields,
-//    type into them the values for your fake user, then click the register
-//    button to submit the form (X)
 describe('smoke', () => {
   it('should allow a typical user flow', () => {
     const user = buildUser()
@@ -42,48 +39,82 @@ describe('smoke', () => {
       cy.findByRole('link', {name: /voice of war/i}).click()
     })
 
-    //
-    // 🐨 within the "navigation", find the link named "discover" and click it
-    //
-    // 🐨 within the "main", type in the "searchbox" the title of a book and hit enter
-    //   💰 when using "type" you can make it hit the enter key with "{enter}"
-    //   🐨 within the listitem with the name of your book, find the button
-    //      named "add to list" and click it.
-    //
-    // 🐨 click the reading list link in the navigation
-    //
-    // 🐨 ensure the "main" only has one element "listitem"
-    //   💰 https://docs.cypress.io/api/commands/should.html (.should('have.length', 1))
-    //   🐨 click the link with the name of the book you added to the list to go to the book's page
-    //
-    // 🐨 type in the notes textbox
-    // The textbox is debounced, so the loading spinner won't show up immediately
-    // so to make sure this is working, we need to wait for the spinner to show up
-    // and *then* wait for it to go away.
-    // 🐨 wait for the loading spinner to show up (💰 .should('exist'))
-    // 🐨 wait for the loading spinner to go away (💰 .should('not.exist'))
-    //
-    // 🐨 mark the book as read
-    //
+    cy.findByRole('textbox', {name: /notes/i}).type('This is an awesome book')
+    cy.findByLabelText(/loading/i).should('exist')
+    cy.findByLabelText(/loading/i).should('not.exist')
+
+    cy.findByRole('button', {name: /mark as read/i}).click()
+
     // the radio buttons are fancy and the inputs themselves are visually hidden
-    // in favor of nice looking stars, so we have to the force option to click.
-    // 📜 https://docs.cypress.io/api/commands/click.html#Arguments
-    // 🐨 click the 5 star rating radio button
-    //
-    // 🐨 navigate to the finished books page
-    //
-    // 🐨 make sure there's only one listitem here (within "main")
-    // 🐨 make sure the 5 star rating radio button is checked
-    // 🐨 click the link for your book to go to the books page again
-    //
-    // 🐨 remove the book from the list
-    // 🐨 ensure the notes textbox and the rating radio buttons are gone
-    //
-    // 🐨 navigate back to the finished books page
-    //
-    // 🐨 ensure there are no books in the list
+    // in favor of nice looking stars, so we have to force the click.
+    cy.findByRole('radio', {name: /5 stars/i}).click({force: true})
+
+    cy.findByRole('navigation').within(() => {
+      cy.findByRole('link', {name: /finished books/i}).click()
+    })
+
+    cy.findByRole('main').within(() => {
+      cy.findAllByRole('listitem').should('have.length', 1)
+      cy.findByRole('radio', {name: /5 stars/i}).should('be.checked')
+      cy.findByRole('link', {name: /voice of war/i}).click()
+    })
+
+    cy.findByRole('button', {name: /remove from list/i}).click()
+    cy.findByRole('textbox', {name: /notes/i}).should('not.exist')
+    cy.findByRole('radio', {name: /5 stars/i}).should('not.exist')
+
+    cy.findByRole('navigation').within(() => {
+      cy.findByRole('link', {name: /finished books/i}).click()
+    })
+
+    cy.findByRole('main').within(() => {
+      cy.findAllByRole('listitem').should('have.length', 0)
+    })
   })
 })
+
+// 🐨 create a fake user (X)
+// 🐨 find the button named "register" and click it (X)
+// 🐨 within the "dialog" find the username and password fields,
+//    type into them the values for your fake user, then click the register
+//    button to submit the form (X)
+//
+// 🐨 within the "navigation", find the link named "discover" and click it (X)
+//
+// 🐨 within the "main", type in the "searchbox" the title of a book and hit enter (X)
+//   💰 when using "type" you can make it hit the enter key with "{enter}"
+//   🐨 within the listitem with the name of your book, find the button
+//      named "add to list" and click it. (X)
+//
+// 🐨 click the reading list link in the navigation (X)
+//
+// 🐨 ensure the "main" only has one element "listitem" (X)
+//   🐨 click the link with the name of the book you added to the list to go to the book's page (X)
+//
+// 🐨 type in the notes textbox
+// The textbox is debounced, so the loading spinner won't show up immediately
+// so to make sure this is working, we need to wait for the spinner to show up
+// and *then* wait for it to go away. (X)
+// 🐨 wait for the loading spinner to show up (💰 .should('exist')) (X)
+// 🐨 wait for the loading spinner to go away (💰 .should('not.exist')) (X)
+//
+// 🐨 mark the book as read
+// the radio buttons are fancy and the inputs themselves are visually hidden
+// in favor of nice looking stars, so we have to the force option to click. (X)
+// 🐨 click the 5 star rating radio button (X)
+//
+// 🐨 navigate to the finished books page (X)
+//
+// 🐨 make sure there's only one listitem here (within "main") (X)
+// 🐨 make sure the 5 star rating radio button is checked (X)
+// 🐨 click the link for your book to go to the books page again (X)
+//
+// 🐨 remove the book from the list (X)
+// 🐨 ensure the notes textbox and the rating radio buttons are gone (X)
+//
+// 🐨 navigate back to the finished books page (X)
+//
+// 🐨 ensure there are no books in the list (X)
 
 // Register a User in Cypress
 
@@ -125,3 +156,33 @@ describe('smoke', () => {
 // Then we'll say findByRole('button') for Add to List, we'll click on that. Then, we'll 
 // navigate over to the Reading List and make sure that only one item shows up, the one we 
 // just added, and that item happens to be Voice of War, and we'll click on it.
+
+// Mark Book as Read and Rate
+
+// The first thing that we want to do here is run site visit/. This is going to visit the 
+// home route of our application. Thanks to the way that we have things configured here in 
+// our plugins, where we specified the base URL, it's going to be relative to that URL 
+// right there. When we say '/', it's going to be relative to this full URL.
+
+// First off, we want to register a new user, so we use the build user utility from 
+// support generate. Then we use cy.visit to go to the home page of our app. Then we 
+// find the register button, and we click on it.
+
+// Then, we fill in the registration form within the dialog with that user's user 
+// name and password. Finally, click on the register button. Ultimately, that takes us to 
+// the app in our logged-in state.
+
+// Remove Book from Reading List
+
+// Now that we're here on the book page with our finished book, let's make sure that we 
+// can remove this from our list and verify that the rating goes away and the notes go 
+// away from the bottom, and then go through our finished books and verify that it doesn't 
+// show up here either.
+
+// I feel confident with my ability to ship my app with these tests and triage any 
+// problems that come up if these tests fail because the tools that we have at our 
+// disposal are just super great.
+
+// In review, we clicked on the Remove from the list button for this last bit of our test 
+// and verified the notes, and the stars don't show up. We went to the finished book page 
+// and verified that it was removed from our reading list.
